@@ -1,4 +1,4 @@
-name: create-artifacts
+name: release-artifacts
 on:
   workflow_dispatch:
     inputs:
