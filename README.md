@@ -5,6 +5,8 @@ A desktop application that lets you browse and watch Valorant replays, including
 > Currently in early development, expect bugs and missing features. The app is not yet feature complete and may be unstable.
 > Please report any issues you encounter and feel free to leave feedback or suggestions in the project's issue tracker.
 
+Once the app runs [click here](http://localhost:3000) or open "http://localhost:3000" in your browser to access the interface.
+
 ## Disclaimer
 
 **VRV isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved 
