@@ -7,6 +7,23 @@ A desktop application that lets you browse and watch Valorant replays, including
 
 Once the app runs [click here](http://localhost:3000) or open "http://localhost:3000" in your browser to access the interface.
 
+## How to use
+
+#### Recent Matches:
+- Shows your you recently played matches
+- You may download the replay for any finished match
+
+#### Stored Matches:
+- Shows you all your stored matches
+- You can download the matches to a directory of your choice and share it with others if you want
+- You can also import matches that your friends have downloaded with this app
+
+#### Injection:
+- Injecting a match allows you to view any replay file (of current game version) in the Valorant Client directly
+- After injection **START A REPLAY OF THE FIRST REPLAYABLE MATCH IN YOUR HISTORY**, it will look like the original replay
+is loaded initially but once you are loaded in the replay will be the one you have selected for injection.
+
+
 ## Disclaimer
 
 **VRV isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved 
