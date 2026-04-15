@@ -8,7 +8,7 @@ A desktop application that lets you browse and watch Valorant replays, including
 Once the app runs [click here](http://localhost:3000) or open "http://localhost:3000" in your browser to access the interface.
 
 ## How to use
-
+[Showcase Video](https://youtu.be/Pxiy_7opG3E)
 #### Recent Matches:
 - Shows your you recently played matches
 - You may download the replay for any finished match
