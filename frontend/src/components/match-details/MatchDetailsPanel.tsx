@@ -47,6 +47,7 @@ export const KNOWN_QUEUE_IDS = {
     UNRATED: 'unrated',
     SWIFTPLAY: 'swiftplay',
     DEATHMATCH: 'deathmatch',
+    PREMIER: 'premier',
 } as const;
 
 export const MatchDetailsPanel = (
@@ -58,6 +59,7 @@ export const MatchDetailsPanel = (
         case KNOWN_QUEUE_IDS.SPIKE_RUSH:
         case KNOWN_QUEUE_IDS.SWIFTPLAY:
         case KNOWN_QUEUE_IDS.UNRATED:
+        case KNOWN_QUEUE_IDS.PREMIER:
             return (
                 <TwoTeamDetailsPanel {...props} />
             );
