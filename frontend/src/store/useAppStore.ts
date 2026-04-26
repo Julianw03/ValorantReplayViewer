@@ -95,9 +95,8 @@ export const useAppStore = create<AppState>((set) => {
         setMatchStat: (matchId: string, result: MatchStatsResult) =>
             set((s) => {
                 const prev = s.matchStatsCache;
-                if (prev == null) return { matchStatsCache: null};
 
-                return { matchStatsCache: { ...prev, [matchId]: result } };
+                return { matchStatsCache: { ...(prev ?? {}), [matchId]: result } };
             }),
 
         setMapRegistry: (registry: Record<string, MapAsset>) => set({ mapRegistry: registry }),

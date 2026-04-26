@@ -252,7 +252,7 @@ export function useMapRegistry() {
     const setMapRegistry = useAppStore((s) => s.setMapRegistry);
     const existing = useAppStore((s) => s.mapRegistry);
 
-    return useQuery<Record<string, MapAsset> | null>({
+    useQuery<Record<string, MapAsset> | null>({
         queryKey: queryKeys.mapRegistry,
         queryFn: async () => {
             try {
@@ -273,6 +273,8 @@ export function useMapRegistry() {
         staleTime: Infinity,
         retry: false,
     });
+
+    return existing;
 }
 
 export function useProductSessionRegistry() {
