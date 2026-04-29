@@ -15,13 +15,13 @@ import { RiotClientReadyGuard } from '@/riotclient/RiotClientReadyGuard';
 import { ValorantMatchStatsManager } from '@/caching/ValorantMatchStatsModule/ValorantMatchStatsManager';
 import { ApiExtraModels, ApiOkResponse, getSchemaPath } from '@nestjs/swagger';
 import {
-    AsyncResultSchema,
     Failure,
     Pending,
     Success,
 } from '#/utils/AsyncResult';
 import { RiotMatchApiResponseDTO } from '@/caching/ValorantMatchStatsModule/RiotMatchApiResponseDTO';
 import { ProductSessionGuard, RequiredProduct } from '@/caching/ProductSessionManager/ProductSessionGuard';
+import { AsyncResultSchema } from '@/utils/AsyncResultSwagger';
 
 @RequiredProduct('valorant')
 @UseGuards(RiotClientReadyGuard, ProductSessionGuard)

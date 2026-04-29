@@ -34,8 +34,8 @@ import { StorageStatusDTO } from '@/plugins/replay/storage/StorageStatusDTO';
 import { ReplayMetadata } from '@/plugins/replay/storage/ReplayStorageFormat';
 import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { AsyncResult } from '#/utils/AsyncResult';
 import { DownloadStateDTO } from '#/dto/DownloadStateDTO';
+import { mapErrorAsync } from '@/utils/AsyncResultSwagger';
 
 @Controller({
     path: 'plugins/replay/storage',
@@ -44,7 +44,8 @@ import { DownloadStateDTO } from '#/dto/DownloadStateDTO';
 export class ReplayIOController {
     private readonly logger = new Logger(ReplayIOController.name);
 
-    constructor(protected readonly replayIOManager: ReplayIOManagerV2) {}
+    constructor(protected readonly replayIOManager: ReplayIOManagerV2) {
+    }
 
     @Post('')
     @ApiOperation({
@@ -120,7 +121,7 @@ export class ReplayIOController {
         if (!file.buffer || file.buffer.length === 0)
             throw new BadRequestException('Uploaded file is empty');
 
-        return AsyncResult.mapErrorAsync(
+        return mapErrorAsync(
             this.replayIOManager.importMatch(file.buffer, override !== 'false'),
             new Map([
                 [MatchAlreadyExistsError, (e) => new ConflictException(e.message)],
@@ -168,7 +169,7 @@ export class ReplayIOController {
     @ApiOkResponse({ description: 'Match metadata retrieved.' })
     @ApiNotFoundResponse({ description: 'Match not found.' })
     async getMatchMetadata(@Param('matchId') matchId: string): Promise<ReplayMetadata> {
-        return AsyncResult.mapErrorAsync(
+        return mapErrorAsync(
             this.replayIOManager.loadSavedMetadata(matchId),
             new Map([
                 [MatchNotFoundError, (e) => new NotFoundException(e.message)],

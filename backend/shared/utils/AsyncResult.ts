@@ -1,13 +1,10 @@
-import { ApiProperty, getSchemaPath } from '@nestjs/swagger';
-import { InternalServerErrorException } from '@nestjs/common';
+export const AsyncResultType = {
+    PENDING: 'PENDING',
+    SUCCESS: 'SUCCESS',
+    FAILURE: 'FAILURE',
+} as const;
 
-export enum AsyncResultType {
-    PENDING = 'PENDING',
-    SUCCESS = 'SUCCESS',
-    FAILURE = 'FAILURE',
-}
-
-type ErrorConstructor<E extends Error> = new (...args: any[]) => E;
+export type AsyncResultType = typeof AsyncResultType[keyof typeof AsyncResultType];
 
 export type AsyncResultUnion<T, E extends Error> =
     | Pending<T, E>
@@ -39,33 +36,6 @@ export abstract class AsyncResult<T, E extends Error> {
         } catch (err) {
             return AsyncResult.failure<T, E>(err as E);
         }
-    }
-
-    static async mapErrorAsync<T, E extends Error>(
-        asyncResultPromise: Promise<AsyncResult<T, E>>,
-        errorMap: Map<ErrorConstructor<any>, (e: any) => Error>,
-    ): Promise<T> {
-        let res: AsyncResult<T, E>;
-
-        try {
-            res = await asyncResultPromise;
-        } catch (err) {
-            throw new InternalServerErrorException(err);
-        }
-
-        if (res.isSuccess()) {
-            return res.data;
-        }
-
-        if (res.isFailure()) {
-            for (const [ErrorCtor, mapper] of errorMap.entries()) {
-                if (res.error instanceof ErrorCtor) {
-                    throw mapper(res.error);
-                }
-            }
-        }
-
-        throw new InternalServerErrorException('Unexpected pending state');
     }
 
     toPromise(): Promise<AsyncResult<T, E>> {
@@ -116,22 +86,11 @@ export abstract class AsyncResult<T, E extends Error> {
 }
 
 export class Pending<T, E extends Error> extends AsyncResult<T, E> {
-    @ApiProperty({
-        enum: AsyncResultType,
-        enumName: 'AsyncResultType',
-        default: AsyncResultType.PENDING,
-    })
     readonly type = AsyncResultType.PENDING;
 }
 
 export class Success<T, E extends Error> extends AsyncResult<T, E> {
-    @ApiProperty({
-        enum: AsyncResultType,
-        enumName: 'AsyncResultType',
-        default: AsyncResultType.SUCCESS,
-    })
     readonly type = AsyncResultType.SUCCESS;
-    @ApiProperty()
     readonly data: T;
 
     constructor(data: T) {
@@ -141,13 +100,7 @@ export class Success<T, E extends Error> extends AsyncResult<T, E> {
 }
 
 export class Failure<T, E extends Error> extends AsyncResult<T, E> {
-    @ApiProperty({
-        enum: AsyncResultType,
-        enumName: 'AsyncResultType',
-        default: AsyncResultType.FAILURE,
-    })
     readonly type = AsyncResultType.FAILURE;
-    @ApiProperty()
     readonly error: E;
 
     constructor(error: E) {
@@ -155,43 +108,3 @@ export class Failure<T, E extends Error> extends AsyncResult<T, E> {
         this.error = error;
     }
 }
-
-export const AsyncResultSchema = (payloadRef: string) => {
-    return {
-        oneOf: [
-            { $ref: getSchemaPath(Pending) },
-            {
-                allOf: [
-                    { $ref: getSchemaPath(Success) },
-                    {
-                        type: 'object',
-                        properties: { data: { $ref: payloadRef } },
-                    },
-                ],
-            },
-            {
-                allOf: [
-                    { $ref: getSchemaPath(Failure) },
-                    {
-                        type: 'object',
-                        properties: {
-                            error: {
-                                type: 'object',
-                                properties: { message: { type: 'string' } },
-                                required: ['message'],
-                            },
-                        },
-                    },
-                ],
-            },
-        ],
-        discriminator: {
-            propertyName: 'type',
-            mapping: {
-                [AsyncResultType.PENDING]: getSchemaPath(Pending),
-                [AsyncResultType.SUCCESS]: getSchemaPath(Success),
-                [AsyncResultType.FAILURE]: getSchemaPath(Failure),
-            },
-        },
-    };
-};

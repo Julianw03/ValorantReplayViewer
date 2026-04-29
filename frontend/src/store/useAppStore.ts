@@ -146,7 +146,7 @@ export const useAppStore = create<AppState>((set) => {
 
             ReplayInjectManager: (event) => {
                 if (event.type !== 'StateUpdated') return;
-                set({ currentInjectState: event.payload.value as InjectStatus | null });
+                set({ currentInjectState: event.payload.value as InjectStatus });
             },
 
             ReplayIOManagerV2: (event) => {

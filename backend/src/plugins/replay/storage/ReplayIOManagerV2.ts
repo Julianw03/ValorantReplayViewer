@@ -1,4 +1,3 @@
-import { MapDataManager } from '@/caching/base/MapDataManager';
 import { BadRequestException, Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { ReplayMetadata } from '@/plugins/replay/storage/ReplayStorageFormat';
 import path from 'node:path';
@@ -14,7 +13,6 @@ import { type ConfigType } from '@nestjs/config';
 import { DownloadState, DownloadStateDTO } from '#/dto/DownloadStateDTO';
 import { EmittingMapDataManager } from '@/caching/base/EmittingMapDataManager';
 import { SimpleEventBus } from '@/events/SimpleEventBus';
-import { PuuidToPlayerAliasManager } from '@/caching/PuuidToPlayerAliasManager/PuuidToPlayerAliasManager';
 
 
 
