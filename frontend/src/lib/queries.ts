@@ -3,6 +3,7 @@ import type { ConfigOverrides, MapAsset, MatchStatsResult } from '@/lib/api';
 import { api } from '@/lib/api';
 import { useAppStore } from '@/store/useAppStore';
 import type { ProductSession } from '#/dto/ProductSession.ts';
+import { DownloadState, type DownloadStateDTO } from '#/dto/DownloadStateDTO.ts';
 
 // ---- Query keys ----
 
@@ -12,7 +13,7 @@ export const queryKeys = {
     storedMatches: ['storedMatches'] as const,
     currentShippingVersion: ['currentShippingVersion'] as const,
     recentMatches: (offset: number, limit: number) => ['recentMatches', offset, limit] as const,
-    downloadState: (matchId: string) => ['downloadState', matchId] as const,
+    downloadStates: ['downloadStates'] as const,
     injectStatus: ['injectStatus'] as const,
     matchStats: (matchId: string) => ['matchStats', matchId] as const,
     mapRegistry: ['mapRegistry'] as const,
@@ -27,7 +28,6 @@ export function useIsConnected() {
     return useQuery({
         queryKey: queryKeys.isConnected,
         queryFn: () => api.riotClient.isConnected(),
-        // Fast-poll when disconnected, stop when connected
         refetchInterval: (query) => (query.state.data === false ? 2000 : false),
         staleTime: 0,
         retry: 2,
@@ -132,70 +132,96 @@ export function useShippingVersion() {
     return existing;
 }
 
-/**
- * Download state for a single match.
- * Only fetches when the matchId has been marked as triggered (via useTriggerDownload).
- * Polls every 3s while PENDING, stops on SUCCESS or FAILURE.
- */
-export function useDownloadState(matchId: string) {
-    const isTriggered = useAppStore((s) => s.triggeredMatchIds.includes(matchId));
+// ---- Download states ----
 
-    return useQuery({
-        queryKey: queryKeys.downloadState(matchId),
-        queryFn: () => api.remote.getDownloadState(matchId),
-        enabled: isTriggered,
-        refetchInterval: (query) =>
-            query.state.data?.type === 'PENDING' ? 3000 : false,
-        staleTime: 0,
+/**
+ * Returns the current `DownloadStateDTO` for a single match from the Zustand store.
+ *
+ * On first call, if the store hasn't been hydrated yet (no WS StateUpdated snapshot
+ * has arrived), fires a one-shot REST fetch to seed the full map. Subsequent calls
+ * from any component share the same React Query cache entry and will not re-fetch.
+ *
+ * After hydration, all updates arrive exclusively via WebSocket events:
+ *   - `StateUpdated`    → full snapshot (on WS reconnect)
+ *   - `KeyValueUpdated` → single-match delta
+ *
+ * Returns `undefined` while the store is still being hydrated.
+ */
+export function useDownloadState(matchId: string): DownloadStateDTO | undefined {
+    const downloadStates = useAppStore((s) => s.downloadStates);
+    const setDownloadStates = useAppStore((s) => s.setDownloadStates);
+
+    useQuery({
+        queryKey: queryKeys.downloadStates,
+        queryFn: async () => {
+            const states = await api.storage.getAllDownloadStates();
+            setDownloadStates(states);
+            return states;
+        },
+        // Skip if already populated — either by a prior REST fetch or a WS snapshot
+        // that arrived before this hook first mounted.
+        enabled: downloadStates === null,
+        staleTime: Infinity,
+        retry: false,
     });
+
+    return downloadStates?.[matchId];
 }
 
-export function useTriggerDownload() {
-    const queryClient = useQueryClient();
-    const addTriggeredMatch = useAppStore((s) => s.addTriggeredMatch);
+/**
+ * Convenience boolean selectors derived from `useDownloadState`.
+ * Use these in components to branch on the current state without
+ * manually comparing `DownloadState` enum values.
+ */
+export function useDownloadStateFlags(matchId: string) {
+    const dto = useDownloadState(matchId);
 
+    return {
+        /** No entry exists or the last attempt failed — a download can be started. */
+        canDownload:   dto === undefined || dto.state === DownloadState.FAILED,
+        /** A download is currently in progress. */
+        isDownloading: dto?.state === DownloadState.DOWNLOADING,
+        /** The download failed and can be retried. */
+        isFailed:      dto?.state === DownloadState.FAILED,
+        /** The replay is locally stored and ready to use. */
+        isDownloaded:  dto?.state === DownloadState.DOWNLOADED,
+        /** The raw DTO — useful when you need the state value itself. */
+        dto,
+    } as const;
+}
+
+/**
+ * Triggers a download for a match.
+ * The store is updated exclusively via the WebSocket `KeyValueUpdated` event
+ * that the backend emits when the state transitions to `DOWNLOADING`.
+ */
+export function useTriggerDownload() {
     return useMutation({
         mutationFn: (matchId: string) => api.remote.triggerDownload(matchId),
-        onMutate: (matchId) => {
-            addTriggeredMatch(matchId);
-            // Optimistically set PENDING so polling starts immediately
-            queryClient.setQueryData(queryKeys.downloadState(matchId), { type: 'PENDING' });
-        },
-        onError: (e: Error, matchId) => {
-            queryClient.setQueryData(queryKeys.downloadState(matchId), {
-                type: 'FAILURE',
-                error: { message: e.message },
-            });
-        },
     });
 }
 
+/**
+ * Retries a failed download. Identical shape to `useTriggerDownload` —
+ * kept separate so call sites can distinguish intent.
+ */
 export function useRetryDownload() {
-    const queryClient = useQueryClient();
-    const addTriggeredMatch = useAppStore((s) => s.addTriggeredMatch);
-
     return useMutation({
         mutationFn: (matchId: string) => api.remote.retryDownload(matchId),
-        onMutate: (matchId) => {
-            addTriggeredMatch(matchId);
-            queryClient.setQueryData(queryKeys.downloadState(matchId), { type: 'PENDING' });
-        },
-        onError: (e: Error, matchId) => {
-            queryClient.setQueryData(queryKeys.downloadState(matchId), {
-                type: 'FAILURE',
-                error: { message: e.message },
-            });
-        },
     });
 }
 
 // ---- Match stats ----
 
 /**
- * Fetches cached match stats from the backend.
- * - Returns `null` if the stats haven't been fetched yet (404).
- * - WS-pushed data from ValorantMatchStatsManager takes priority over the REST result.
- * - Only fetches when `enabled` is true (lazy – open collapsible to trigger).
+ * Returns match stats for a single match, lazily fetched from the REST endpoint.
+ *
+ * Priority:
+ *  1. If the Zustand store already has data (pushed via WS), return that immediately.
+ *  2. Otherwise fire a REST call, write the result into the store, and return it.
+ *
+ * Pass `enabled = false` to defer fetching (e.g. for collapsed rows).
+ * Returns `null` if the backend reports no stats yet (HTTP 404).
  */
 export function useMatchStats(matchId: string, enabled = true) {
     const wsData = useAppStore((s) => s.matchStatsCache?.[matchId]);
@@ -215,12 +241,13 @@ export function useMatchStats(matchId: string, enabled = true) {
                 throw e;
             }
         },
-        // Skip the REST call if WS already delivered data
+        // Skip REST call when WS already delivered data.
         enabled: enabled && wsData === undefined,
         staleTime: Infinity,
         retry: false,
     });
 
+    // WS data always wins — short-circuit React Query entirely.
     if (wsData !== undefined) {
         return { data: wsData, isLoading: false, isError: false, isFetching: false } as const;
     }
@@ -234,8 +261,8 @@ export function useTriggerMatchStatsFetch() {
     return useMutation({
         mutationFn: (matchId: string) => api.matchStats.triggerFetch(matchId),
         onMutate: (matchId) => {
-            // Optimistically mark as pending so the panel shows a spinner immediately
-            setMatchStat(matchId, { type: 'PENDING' });
+            // Optimistically mark as pending so the panel shows a spinner immediately.
+            setMatchStat(matchId, { type: 'PENDING' } as unknown as MatchStatsResult);
             queryClient.removeQueries({ queryKey: queryKeys.matchStats(matchId) });
         },
     });
@@ -266,9 +293,7 @@ export function useMapRegistry() {
                 throw e;
             }
         },
-        // Skip the fetch entirely if the registry is already populated in the store
         enabled: existing === null,
-        // Poll every 3s while the backend hasn't produced data yet
         refetchInterval: (query) => query.state.data === null ? 3000 : false,
         staleTime: Infinity,
         retry: false,
@@ -308,7 +333,6 @@ export function useInjectStatus() {
     return useQuery({
         queryKey: queryKeys.injectStatus,
         queryFn: () => api.injector.getStatus(),
-        // Poll every 3s while an injection is actively in progress
         refetchInterval: (query) => {
             const state = query.state.data?.state;
             const terminal = !state || state === 'IDLE' || state === 'INJECTED' || state === 'FAILED';

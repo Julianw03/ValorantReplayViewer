@@ -113,16 +113,17 @@ export function InjectorPage() {
     const injectStatus = useAppStore((s) => s.currentInjectState);
     const { mutate: cancelInject, isPending: isCancelling } = useCancelInject();
 
-    const isActive = injectStatus !== InjectStates.IDLE;
+    const injectState = injectStatus?.state;
+    const isActive = injectState !== InjectStates.IDLE;
 
     return (
         <div className="flex w-full flex-col gap-4">
             {/* Status header card */}
             <div className="flex items-center justify-between rounded-lg border border-border bg-card px-5 py-4">
                 <div className="flex items-center gap-3">
-                    <StateIcon state={injectStatus} />
+                    <StateIcon state={injectState} />
                     <div>
-                        <p className="text-sm font-medium">{injectStatus.replaceAll('_', ' ')}</p>
+                        <p className="text-sm font-medium">{injectState.replaceAll('_', ' ')}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -152,13 +153,15 @@ export function InjectorPage() {
                 <p className="mb-5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Progress
                 </p>
-                <ProgressSteps currentState={injectStatus} />
+                <ProgressSteps currentState={injectState} />
             </div>
+
+
 
             {/* Contextual description */}
             <div className="flex items-start gap-3 rounded-lg border border-border/50 bg-muted/20 px-5 py-4">
                 <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">{STATE_DESCRIPTION[injectStatus]}</p>
+                <p className="text-sm text-muted-foreground">{STATE_DESCRIPTION[injectState]}</p>
             </div>
         </div>
     );

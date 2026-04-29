@@ -3,7 +3,7 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ValorantGameSessionManager } from '@/caching/ValorantGameSessionModule/ValorantGameSessionManager';
 import { EmittingMapDataManager } from '@/caching/base/EmittingMapDataManager';
 import { SimpleEventBus } from '@/events/SimpleEventBus';
-import { AsyncResult, AsyncResultUnion } from '@/utils/AsyncResult';
+import { AsyncResult, AsyncResultUnion } from '#/utils/AsyncResult';
 import { MatchStatus } from '@/caching/ValorantGameSessionModule/MatchStatus';
 import { KeyValueUpdatedEvent } from '@/events/BasicEvent';
 import { RiotValorantAPI } from '@/api/riot/RiotValorantAPI';
@@ -12,8 +12,8 @@ import { RiotValorantAPI } from '@/api/riot/RiotValorantAPI';
 export class ValorantMatchStatsManager
     extends EmittingMapDataManager<
         SimpleUUID,
-        AsyncResult<RiotMatchApiResponse>,
-        AsyncResultUnion<RiotMatchApiResponse>
+        AsyncResult<RiotMatchApiResponse, Error>,
+        AsyncResultUnion<RiotMatchApiResponse, Error>
     >
     implements OnModuleInit, OnModuleDestroy {
     public static readonly MAGIC_PLATFORM_STRING =
@@ -56,21 +56,21 @@ export class ValorantMatchStatsManager
         if (this.getEntryView(matchId) !== null) {
             return;
         }
-        this.setKeyValue(matchId, AsyncResult.ofPending());
+        this.setKeyValue(matchId, AsyncResult.pending());
         this.valorantApi
             .getMatchDetails(matchId)
             .then((data) => {
                 this.logger.debug(
                     `Received match data for match ID ${matchId}`
                 );
-                this.setKeyValue(matchId, AsyncResult.ofSuccess(data));
+                this.setKeyValue(matchId, AsyncResult.success(data));
             })
             .catch((e) => {
                 this.logger.debug(
                     `Failed to fetch match data for match ID ${matchId}`,
                     e,
                 );
-                this.setKeyValue(matchId, AsyncResult.ofFailure(e));
+                this.setKeyValue(matchId, AsyncResult.failure(e));
             });
     }
 
@@ -78,9 +78,9 @@ export class ValorantMatchStatsManager
     }
 
     protected getViewForValue(
-        value: AsyncResult<RiotMatchApiResponse> | null,
-    ): AsyncResultUnion<RiotMatchApiResponse> | null {
+        value: AsyncResult<RiotMatchApiResponse, Error> | null,
+    ): AsyncResultUnion<RiotMatchApiResponse, Error> | null {
         if (value === null) return null;
-        return { ...value } as AsyncResultUnion<RiotMatchApiResponse>;
+        return { ...value } as AsyncResultUnion<RiotMatchApiResponse, Error>;
     }
 }

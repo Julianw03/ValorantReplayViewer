@@ -1,7 +1,8 @@
 import { create } from 'zustand';
-import { type InjectState, InjectStates, type MapAsset, type MatchStatsResult, type PlayerAlias } from '@/lib/api';
+import { InjectStates, type InjectStatus, type MapAsset, type MatchStatsResult, type PlayerAlias } from '@/lib/api';
 import type { ProductSession } from '#/dto/ProductSession.ts';
 import type { MinimalVersionInfo } from '#/dto/MinimalVersionInfo.ts';
+import { type DownloadStateDTO } from '#/dto/DownloadStateDTO.ts';
 
 export type EventType =
     | 'StateUpdated'
@@ -43,14 +44,11 @@ interface AppState {
     wsConnected: boolean;
     playerAlias: PlayerAlias | null;
 
-    // Tracks which matchIds have had a download triggered this session.
-    // Used to enable the per-match download state query lazily.
-    triggeredMatchIds: string[];
+    downloadStates: Record<string, DownloadStateDTO> | null;
 
-    currentInjectState: InjectState;
+    currentInjectState: InjectStatus;
     currentValorantShippingVersion: string | null;
 
-    // WS-pushed match stats cache keyed by matchId.
     matchStatsCache: Record<string, MatchStatsResult> | null;
 
     // Map asset registry keyed by mapUrl (e.g. "/Game/Maps/Ascent/Ascent").
@@ -58,8 +56,15 @@ interface AppState {
     sessionRegistry: Record<string, ProductSession> | null;
 
     setWsConnected: (connected: boolean) => void;
-    addTriggeredMatch: (matchId: string) => void;
-    setMatchStat: (matchId: string, result: MatchStatsResult) => void;
+
+    // downloadStates mutations
+    setDownloadStates: (states: Record<string, DownloadStateDTO> | null) => void;
+    setDownloadStat: (matchId: string, downloadState: DownloadStateDTO | null) => void;
+
+    // matchStatsCache mutations
+    setMatchStatsCache: (cache: Record<string, MatchStatsResult> | null) => void;
+    setMatchStat: (matchId: string, result: MatchStatsResult | null) => void;
+
     setMapRegistry: (registry: Record<string, MapAsset>) => void;
     setSessionRegistry: (registry: Record<string, ProductSession>) => void;
     setCurrentShippingVersion: (version: string | null) => void;
@@ -73,94 +78,132 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set) => {
-    const state = {
-        wsConnected: false,
-        playerAlias: null,
-        currentValorantShippingVersion: null,
-        triggeredMatchIds: [],
-        matchStatsCache: null,
-        mapRegistry: null,
-        sessionRegistry: null,
-        currentInjectState: InjectStates.IDLE,
+    // ---------------------------------------------------------------------------
+    // Mutations
+    // ---------------------------------------------------------------------------
 
-        setWsConnected: (connected: boolean) => set({ wsConnected: connected }),
+    const setWsConnected = (connected: boolean) => set({ wsConnected: connected });
 
-        addTriggeredMatch: (matchId: string) =>
-            set((s) => ({
-                triggeredMatchIds: s.triggeredMatchIds.includes(matchId)
-                    ? s.triggeredMatchIds
-                    : [...s.triggeredMatchIds, matchId],
-            })),
+    const setDownloadStates = (states: Record<string, DownloadStateDTO> | null) =>
+        set({ downloadStates: states });
 
-        setMatchStat: (matchId: string, result: MatchStatsResult) =>
-            set((s) => {
+    /**
+     * Upserts or removes a single match's download state.
+     * Passing `null` removes the entry from the map.
+     * If the map hasn't been hydrated yet (`null`), a deletion is a no-op and
+     * an upsert seeds the map with just this entry.
+     */
+    const setDownloadStat = (matchId: string, downloadState: DownloadStateDTO | null) =>
+        set((s) => {
+            if (downloadState === null) {
+                const prev = s.downloadStates;
+                if (prev == null) return {};
+                const next = { ...prev };
+                delete next[matchId];
+                return { downloadStates: next };
+            }
+            return { downloadStates: { ...(s.downloadStates ?? {}), [matchId]: downloadState } };
+        });
+
+    const setMatchStatsCache = (cache: Record<string, MatchStatsResult> | null) =>
+        set({ matchStatsCache: cache });
+
+    /**
+     * Upserts or removes a single match's stats entry.
+     * Passing `null` removes the entry.
+     */
+    const setMatchStat = (matchId: string, result: MatchStatsResult | null) =>
+        set((s) => {
+            if (result === null) {
                 const prev = s.matchStatsCache;
+                if (prev == null) return {};
+                const next = { ...prev };
+                delete next[matchId];
+                return { matchStatsCache: next };
+            }
+            return { matchStatsCache: { ...(s.matchStatsCache ?? {}), [matchId]: result } };
+        });
 
-                return { matchStatsCache: { ...(prev ?? {}), [matchId]: result } };
-            }),
+    const setMapRegistry = (registry: Record<string, MapAsset>) =>
+        set({ mapRegistry: registry });
 
-        setMapRegistry: (registry: Record<string, MapAsset>) => set({ mapRegistry: registry }),
+    const setSessionRegistry = (registry: Record<string, ProductSession>) =>
+        set({ sessionRegistry: registry });
 
-        setSessionRegistry: (registry: Record<string, ProductSession>) => set({ sessionRegistry: registry }),
+    const setCurrentShippingVersion = (version: string | null) =>
+        set({ currentValorantShippingVersion: version });
 
-        setCurrentShippingVersion: (version: string | null) => set({ currentValorantShippingVersion: version }),
-    };
+    // ---------------------------------------------------------------------------
+    // WebSocket event router
+    // ---------------------------------------------------------------------------
 
     const handleWSEvent = (event: AnyBasicEvent) => {
-        const handlers: Partial<Record<string, (v: AnyBasicEvent) => void>> = {
-            AccountNameAndTagLineManager: (event: AnyBasicEvent) => {
+        const handlers: Partial<Record<string, (event: AnyBasicEvent) => void>> = {
+            AccountNameAndTagLineManager: (event) => {
                 if (event.type !== 'StateUpdated') return;
-                const value = event.payload.value as PlayerAlias | null;
-                set({ playerAlias: value });
+                set({ playerAlias: event.payload.value as PlayerAlias | null });
             },
-            ReplayInjectManager: (event: AnyBasicEvent) => {
+
+            ReplayInjectManager: (event) => {
                 if (event.type !== 'StateUpdated') return;
-                const injectState = event.payload.value as InjectState | null;
-                set({ currentInjectState: injectState ?? InjectStates.IDLE });
+                set({ currentInjectState: event.payload.value as InjectStatus | null });
             },
-            ValorantMatchStatsManager: (event: AnyBasicEvent) => {
+
+            ReplayIOManagerV2: (event) => {
+                switch (event.type) {
+                    case 'KeyValueUpdated': {
+                        // A single match's state changed.
+                        const matchId = event.payload.key as string;
+                        const dto = event.payload.value as DownloadStateDTO | null;
+                        setDownloadStat(matchId, dto);
+                        break;
+                    }
+                    case 'StateUpdated': {
+                        // Full snapshot delivered on connect / reconnect.
+                        const snapshot = event.payload.value as Record<string, DownloadStateDTO> | null;
+                        setDownloadStates(snapshot);
+                        break;
+                    }
+                }
+            },
+
+            ValorantMatchStatsManager: (event) => {
                 if (event.type !== 'KeyValueUpdated') return;
                 const matchId = event.payload.key as string;
                 const result = event.payload.value as MatchStatsResult | null;
-                if (result !== null && result !== undefined) {
-                    state.setMatchStat(matchId, result);
-                }
+                setMatchStat(matchId, result);
             },
-            ValorantVersionInfoManager: (event: AnyBasicEvent) => {
+
+            ValorantVersionInfoManager: (event) => {
                 if (event.type !== 'StateUpdated') return;
-                console.log('Received ValorantVersionInfoManager event: ', event);
-                const currentVersion = event.payload.value as MinimalVersionInfo | null;
-                set({ currentValorantShippingVersion: currentVersion?.version ?? null });
+                const info = event.payload.value as MinimalVersionInfo | null;
+                set({ currentValorantShippingVersion: info?.version ?? null });
             },
-            ProductSessionManager: (event: AnyBasicEvent) => {
+
+            ProductSessionManager: (event) => {
                 switch (event.type) {
                     case 'StateUpdated': {
-                        const currentSessions = event.payload.value as Record<string, ProductSession>;
-                        if (currentSessions !== undefined) {
-                            set({ sessionRegistry: currentSessions });
-                        }
+                        const sessions = event.payload.value as Record<string, ProductSession>;
+                        if (sessions !== undefined) set({ sessionRegistry: sessions });
                         break;
                     }
                     case 'KeyValueUpdated': {
                         const sessionId = event.payload.key as string;
                         const session = event.payload.value as ProductSession | null;
-                        if (session) {
-                            console.log(`Updating session registry with new/updated session ${sessionId}`);
-                            set((s) => {
-                                const prev = s.sessionRegistry;
-                                if (prev == null) return  { sessionRegistry: null };
-                                return { sessionRegistry: { ...prev, [sessionId]: session } };
-                            });
-                        }
-                        if (session === null) {
-                            console.log('Removing session from registry with id ', sessionId);
-                            set((s) => {
-                                if (!s.sessionRegistry) return { sessionRegistry: null};
-                                const newRegistry = { ...s.sessionRegistry };
-                                delete newRegistry[sessionId];
-                                return { sessionRegistry: newRegistry };
-                            });
-                        }
+                        set((s) => {
+                            if (session === null) {
+                                if (!s.sessionRegistry) return {};
+                                const next = { ...s.sessionRegistry };
+                                delete next[sessionId];
+                                return { sessionRegistry: next };
+                            }
+                            return {
+                                sessionRegistry: {
+                                    ...(s.sessionRegistry ?? {}),
+                                    [sessionId]: session,
+                                },
+                            };
+                        });
                         break;
                     }
                 }
@@ -170,9 +213,32 @@ export const useAppStore = create<AppState>((set) => {
         handlers[event.source]?.(event);
     };
 
+    // ---------------------------------------------------------------------------
+    // Initial state
+    // ---------------------------------------------------------------------------
 
-    return ({
-        ...state,
+    return {
+        wsConnected: false,
+        playerAlias: null,
+        currentValorantShippingVersion: null,
+        downloadStates: null,
+        matchStatsCache: null,
+        mapRegistry: null,
+        sessionRegistry: null,
+        currentInjectState: {
+            state: InjectStates.IDLE,
+            targetMatchId: null,
+            placeholderMatchId: null,
+        },
+
+        setWsConnected,
+        setDownloadStates,
+        setDownloadStat,
+        setMatchStatsCache,
+        setMatchStat,
+        setMapRegistry,
+        setSessionRegistry,
+        setCurrentShippingVersion,
         handleWSEvent,
-    });
+    };
 });

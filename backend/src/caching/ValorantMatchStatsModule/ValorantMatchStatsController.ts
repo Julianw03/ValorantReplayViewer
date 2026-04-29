@@ -19,8 +19,7 @@ import {
     Failure,
     Pending,
     Success,
-} from '@/utils/AsyncResult';
-import type { SimpleUUID } from '@/caching/ValorantMatchStatsModule/RiotMatchApiResponseDTO';
+} from '#/utils/AsyncResult';
 import { RiotMatchApiResponseDTO } from '@/caching/ValorantMatchStatsModule/RiotMatchApiResponseDTO';
 import { ProductSessionGuard, RequiredProduct } from '@/caching/ProductSessionManager/ProductSessionGuard';
 
