@@ -1,6 +1,4 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
-import { ReplayIOManager } from '@/plugins/replay/storage/ReplayIOManager';
-import { AsyncResult, AsyncResultType, AsyncResultUnion } from '@/utils/AsyncResult';
 import {
     PlayerSummary,
     REPLAY_FORMAT_VERSION,
@@ -10,26 +8,25 @@ import {
 import { RiotMatchApiResponse } from '@/caching/ValorantMatchStatsModule/RiotMatchApiResponseDTO';
 import { MatchHistoryEntry, RiotValorantAPI } from '@/api/riot/RiotValorantAPI';
 import { ValorantMatchStatsManager } from '@/caching/ValorantMatchStatsModule/ValorantMatchStatsManager';
-import { EntitlementTokenManager } from '@/caching/EntitlementTokenManager/EntitlementTokenManager';
+import { EntitlementTokenManager } from '@/caching/EntitlementTokenModule/EntitlementTokenManager';
+import { PuuidToPlayerAliasManager } from '@/caching/PuuidToPlayerAliasManager/PuuidToPlayerAliasManager';
+
+export interface CombinedReplayData {
+    metadata: ReplayMetadata;
+    replayBuffer: Buffer;
+    matchDetails: RiotMatchApiResponse;
+}
 
 @Injectable()
 export class ReplayFetchManager {
     private readonly logger = new Logger(ReplayFetchManager.name);
 
-    private readonly downloadStates = new Map<string, AsyncResult<void>>();
-
     constructor(
         private readonly apiClient: RiotValorantAPI,
-        private readonly ioManager: ReplayIOManager,
         private readonly tokenManager: EntitlementTokenManager,
         private readonly valorantMatchStatsManager: ValorantMatchStatsManager,
+        private readonly puuidManager: PuuidToPlayerAliasManager,
     ) {
-    }
-
-    getDownloadState(matchId: string): AsyncResultUnion<void> | null {
-        const state = this.downloadStates.get(matchId);
-        if (!state) return null;
-        return { ...state } as AsyncResultUnion<void>;
     }
 
     async getRecentMatches(
@@ -46,64 +43,34 @@ export class ReplayFetchManager {
         return entries;
     }
 
-    async triggerDownload(matchId: string): Promise<void> {
-        const existing = this.downloadStates.get(matchId);
-        if (existing?.type === AsyncResultType.PENDING) {
-            return;
-        }
 
-        this.downloadStates.set(matchId, AsyncResult.ofPending<void>());
-
-        this.doDownload(matchId)
-            .then(() => {
-                this.downloadStates.set(
-                    matchId,
-                    AsyncResult.ofSuccess<unknown>(undefined as never),
-                );
-            })
-            .catch((e: Error) => {
-                this.logger.error(`Download failed for match ${matchId}`, e);
-                this.downloadStates.set(
-                    matchId,
-                    AsyncResult.ofFailure<unknown>(e),
-                );
-            });
-    }
-
-    async retryDownload(matchId: string): Promise<void> {
-        const state = this.downloadStates.get(matchId);
-        if (!state) {
-            throw new Error(
-                `No download has been triggered for match ${matchId}`,
-            );
-        }
-        if (state.type !== AsyncResultType.FAILURE) {
-            throw new Error(
-                `Cannot retry a download that is not in FAILURE state`,
-            );
-        }
-        this.downloadStates.delete(matchId);
-        await this.triggerDownload(matchId);
-    }
-
-    /**
-     * Downloads and saves a match to persistent storage, awaiting completion.
-     * Skips the download if the match is already present.
-     * Unlike triggerDownload, this is synchronous from the caller's perspective.
-     */
-    async downloadAndSave(matchId: string): Promise<void> {
-        if (await this.ioManager.matchExists(matchId)) {
-            return;
-        }
-        await this.doDownload(matchId);
-    }
-
-    private async doDownload(matchId: string): Promise<void> {
+    public async fetchCombinedReplayData(matchId: string): Promise<CombinedReplayData> {
         const [summary, replayBuffer, matchDetails] = await Promise.all([
             this.apiClient.getReplaySummary(matchId),
             this.apiClient.downloadReplayFile(matchId),
             this.apiClient.getMatchDetails(matchId),
         ]);
+
+
+        const puuids = matchDetails.players
+            .map((p) => p.subject)
+            .filter((p) => p !== undefined);
+
+        try {
+            const resolvePuuidMap = await this.puuidManager.fetchPlayerAliasData(puuids);
+            for (const matchDetail of matchDetails?.players ?? []) {
+                const resolvedAlias = resolvePuuidMap[matchDetail.subject ?? ''];
+                if (resolvedAlias) {
+                    matchDetail.gameName = resolvedAlias.gameName;
+                    matchDetail.tagLine = resolvedAlias.tagLine;
+                }
+            }
+        } catch (error) {
+            this.logger.warn(
+                'Failed to resolve player aliases for replay metadata. Proceeding with unresolved puuids.',
+                error,
+            );
+        }
 
         const tokens = this.tokenManager.getView();
 
@@ -120,7 +87,11 @@ export class ReplayFetchManager {
             matchDetails,
             tokens.subject,
         );
-        await this.ioManager.saveReplay(matchId, replayBuffer, metadata);
+        return {
+            metadata,
+            replayBuffer,
+            matchDetails,
+        };
     }
 }
 

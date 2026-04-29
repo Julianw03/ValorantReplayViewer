@@ -8,14 +8,15 @@ import {
     Logger,
     Param,
     Post,
-    Query, UseGuards,
+    Query,
+    UseGuards,
 } from '@nestjs/common';
 import { ApiAcceptedResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
-import { AsyncResultUnion } from '@/utils/AsyncResult';
-import { ReplayIOManager } from '@/plugins/replay/storage/ReplayIOManager';
+import { ReplayIOManagerV2 } from '@/plugins/replay/storage/ReplayIOManagerV2';
 import { GetRecentMatchesDto } from '@/plugins/replay/remote/GetRecentMatchesDTO';
 import { MatchHistoryEntry } from '@/api/riot/RiotValorantAPI';
 import { ProductSessionGuard, RequiredProduct } from '@/caching/ProductSessionManager/ProductSessionGuard';
+import { DownloadStateDTO } from '#/dto/DownloadStateDTO';
 
 @RequiredProduct('valorant')
 @UseGuards(ProductSessionGuard)
@@ -26,7 +27,7 @@ export class ReplayRemoteController {
     private readonly logger = new Logger(ReplayRemoteController.name);
 
     constructor(
-        protected readonly replayIOManager: ReplayIOManager,
+        protected readonly replayIOManager: ReplayIOManagerV2,
         protected readonly replayFetchManager: ReplayFetchManager,
     ) {
     }
@@ -60,10 +61,7 @@ export class ReplayRemoteController {
         description: 'Download triggered.',
     })
     async triggerDownload(@Param('matchId') matchId: string): Promise<void> {
-        if (!(await this.replayIOManager.isSetup())) {
-            throw new BadRequestException('Persistent storage is not set up');
-        }
-        await this.replayFetchManager.triggerDownload(matchId);
+        this.replayIOManager.triggerDownload(matchId);
     }
 
     @Post('matches/recent/:matchId/download/retry')
@@ -73,10 +71,7 @@ export class ReplayRemoteController {
     })
     @HttpCode(HttpStatus.ACCEPTED)
     async retryDownload(@Param('matchId') matchId: string): Promise<void> {
-        if (!(await this.replayIOManager.isSetup())) {
-            throw new BadRequestException('Persistent storage is not set up');
-        }
-        await this.replayFetchManager.retryDownload(matchId);
+        this.replayIOManager.triggerDownload(matchId, true);
     }
 
     @Get('matches/recent/:matchId/download/state')
@@ -86,7 +81,11 @@ export class ReplayRemoteController {
     })
     async getDownloadState(
         @Param('matchId') matchId: string,
-    ): Promise<AsyncResultUnion<void> | null> {
-        return this.replayFetchManager.getDownloadState(matchId);
+    ): Promise<DownloadStateDTO | null> {
+        const entryView = this.replayIOManager.getEntryView(matchId);
+        if (entryView === null) {
+            throw new BadRequestException(`No download job found for match ${matchId}`);
+        }
+        return entryView;
     }
 }

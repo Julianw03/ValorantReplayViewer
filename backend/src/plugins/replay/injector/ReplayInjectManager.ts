@@ -1,16 +1,11 @@
-import { ConflictException, Inject, Injectable, Logger, NotFoundException, OnModuleDestroy } from '@nestjs/common';
-import * as fs from 'node:fs/promises';
-import * as path from 'node:path';
-import { ReplayIOManager } from '@/plugins/replay/storage/ReplayIOManager';
-import { ReplayFetchManager } from '@/plugins/replay/remote/ReplayFetchManager';
+import { ConflictException, Injectable, NotFoundException, OnModuleDestroy } from '@nestjs/common';
 import { SimpleEventBus } from '@/events/SimpleEventBus';
 import { EventType } from '@/events/EventTypes';
 import { StateUpdatedEvent } from '@/events/BasicEvent';
-import { StateUpdatedEventImpl } from '@/events/impl/StateUpdatedEventImpl';
 import { ValorantGameLoopManager } from '@/caching/ValorantGameLoop/ValorantGameLoopManager';
 import { RiotValorantAPI } from '@/api/riot/RiotValorantAPI';
-import { type ConfigType } from '@nestjs/config';
-import { appConfig } from '@/config/configLoader';
+import { EmittingObjectDataManager } from '@/caching/base/EmittingObjectDataManager';
+import { ReplayIOManagerV2 } from '@/plugins/replay/storage/ReplayIOManagerV2';
 
 export enum InjectState {
     IDLE = 'IDLE',
@@ -24,60 +19,42 @@ export enum InjectState {
 export interface InjectStatus {
     state: InjectState;
     targetMatchId: string | null;
+    placeholderMatchId: string | null;
 }
 
 //TODO: Instead get metadata
 const VALID_QUEUE_IDS = ['competitive', 'unrated', 'spikerush', 'swiftplay'];
 
 @Injectable()
-export class ReplayInjectManager implements OnModuleDestroy {
-    private readonly logger = new Logger(ReplayInjectManager.name);
-
-    private state: InjectState = InjectState.IDLE;
+export class ReplayInjectManager extends EmittingObjectDataManager<InjectStatus, InjectStatus> implements OnModuleDestroy {
     private targetMatchId: string | null = null;
     private placeholderMatchId: string | null = null;
     private unsubscribeFromSession: (() => void) | null = null;
 
-    private readonly demosDir: string;
-
     constructor(
-        @Inject(appConfig.KEY)
-        private config: ConfigType<typeof appConfig>,
         private readonly apiClient: RiotValorantAPI,
-        private readonly ioManager: ReplayIOManager,
-        private readonly fetchManager: ReplayFetchManager,
-        private readonly eventBus: SimpleEventBus,
+        private readonly ioManager: ReplayIOManagerV2,
+        protected readonly eventBus: SimpleEventBus,
     ) {
-        this.demosDir = path.join(config.filepaths['valorant-saved'].getResolvedPath(), 'Demos');
-    }
-
-    setInjectState(newState: InjectState) {
-        this.eventBus.publish(
-            StateUpdatedEventImpl.of(ReplayInjectManager.name, newState),
-        );
-        this.state = newState;
-    }
-
-    getInjectState(): InjectState {
-        return this.state;
-    }
-
-    getStatus(): InjectStatus {
-        return { state: this.state, targetMatchId: this.targetMatchId };
+        super(eventBus);
+        this.setState({
+            state: InjectState.IDLE,
+            targetMatchId: null,
+            placeholderMatchId: null,
+        });
     }
 
     async startInject(matchId: string): Promise<void> {
-        if (this.getInjectState() !== InjectState.IDLE) {
+        if (this.getState()?.state !== InjectState.IDLE) {
             throw new ConflictException('An inject process is already running');
         }
-        if (!(await this.ioManager.matchExists(matchId))) {
+        if (!this.ioManager.matchRegistered(matchId)) {
             throw new NotFoundException(
                 `Match ${matchId} is not in persistent storage`,
             );
         }
 
         this.targetMatchId = matchId;
-        this.setInjectState(InjectState.DOWNLOADING_PLACEHOLDER);
 
         try {
             const history = await this.apiClient.getMatchHistory(0, 10);
@@ -97,6 +74,11 @@ export class ReplayInjectManager implements OnModuleDestroy {
             }
 
             this.placeholderMatchId = validPlaceholder.MatchID;
+            this.setState({
+                state: InjectState.DOWNLOADING_PLACEHOLDER,
+                targetMatchId: this.targetMatchId,
+                placeholderMatchId: this.placeholderMatchId,
+            });
             this.logger.log(
                 `Using ${this.placeholderMatchId} as inject placeholder`,
             );
@@ -108,16 +90,13 @@ export class ReplayInjectManager implements OnModuleDestroy {
             }
 
             // Ensure the placeholder is in persistent storage, downloading only if necessary.
-            await this.fetchManager.downloadAndSave(this.placeholderMatchId);
+            await this.ioManager.triggerDownload(this.placeholderMatchId);
 
-            // TODO: Move to IO Manager
-            await fs.mkdir(this.demosDir, { recursive: true });
-            await fs.copyFile(
-                this.ioManager.replayFilePath(this.placeholderMatchId),
-                path.join(this.demosDir, `${this.placeholderMatchId}.vrf`),
-            );
-
-            this.setInjectState(InjectState.AWAITING_REPLAY_START);
+            this.setState({
+                state: InjectState.AWAITING_REPLAY_START,
+                targetMatchId: this.targetMatchId,
+                placeholderMatchId: this.placeholderMatchId,
+            });
 
             this.unsubscribeFromSession = this.eventBus.subscribeOnSource(
                 ValorantGameLoopManager.name,
@@ -130,7 +109,7 @@ export class ReplayInjectManager implements OnModuleDestroy {
                                 'File swap during inject failed',
                                 e,
                             );
-                            this.state = InjectState.FAILED;
+                            this.handleFail();
                         });
                     }
                 },
@@ -143,17 +122,25 @@ export class ReplayInjectManager implements OnModuleDestroy {
             this.logger.error('Inject setup failed', e);
             this.unsubscribeFromSession?.();
             this.unsubscribeFromSession = null;
-            this.setInjectState(InjectState.FAILED);
-            this.targetMatchId = null;
-            this.placeholderMatchId = null;
+            this.handleFail();
         }
     }
 
     cancelInject(): void {
         this.unsubscribeFromSession?.();
         this.unsubscribeFromSession = null;
-        this.reset();
+        this.resetInternalState();
         this.logger.log('Inject cancelled');
+    }
+
+    handleFail(): void {
+        this.setState({
+            state: InjectState.FAILED,
+            targetMatchId: this.targetMatchId,
+            placeholderMatchId: this.placeholderMatchId,
+        });
+        this.targetMatchId = null;
+        this.placeholderMatchId = null;
     }
 
     onModuleDestroy() {
@@ -164,17 +151,15 @@ export class ReplayInjectManager implements OnModuleDestroy {
     private async performInject(): Promise<void> {
         if (!this.targetMatchId || !this.placeholderMatchId) return;
 
-        const targetData = await fs.readFile(
-            this.ioManager.replayFilePath(this.targetMatchId),
+        await this.ioManager.injectReplayOverPlaceholder(
+            this.targetMatchId,
+            this.placeholderMatchId,
         );
-        await fs.writeFile(
-            path.join(this.demosDir, `${this.placeholderMatchId}.vrf`),
-            targetData,
-        );
-        this.logger.log(
-            `Injected ${this.targetMatchId} over placeholder ${this.placeholderMatchId}`,
-        );
-        this.setInjectState(InjectState.INJECTED);
+        this.setState({
+            state: InjectState.INJECTED,
+            targetMatchId: this.targetMatchId,
+            placeholderMatchId: this.placeholderMatchId,
+        });
         this.unsubscribeFromSession =
             this.eventBus.subscribeOnSource<EventType.StateUpdated>(
                 ValorantGameLoopManager.name,
@@ -182,37 +167,43 @@ export class ReplayInjectManager implements OnModuleDestroy {
                     if (event.payload.value === 'MENUS') {
                         this.unsubscribeFromSession?.();
                         this.unsubscribeFromSession = null;
+                        this.setState({
+                            state: InjectState.RESTORING_ORIGINAL_REPLAY,
+                            targetMatchId: this.targetMatchId,
+                            placeholderMatchId: this.placeholderMatchId,
+                        });
                         this.restoreOriginalReplayFile(this.placeholderMatchId)
                             .then(() => {
-                                this.reset();
+                                this.resetInternalState();
                             })
                             .catch((e) => {
                                 this.logger.error(
                                     'Failed to restore original replay file after inject',
                                     e,
                                 );
-                                this.state = InjectState.FAILED;
                             });
                     }
                 },
             );
     }
 
-    private async restoreOriginalReplayFile(targetMatchId: string | null): Promise<void> {
-        if (!targetMatchId) return;
-        const targetData = await fs.readFile(
-            this.ioManager.replayFilePath(targetMatchId),
-        );
-        await fs.writeFile(
-            path.join(this.demosDir, `${targetMatchId}.vrf`),
-            targetData,
-        );
-        return;
+    private async restoreOriginalReplayFile(placeholderMatchId: string | null): Promise<void> {
+        if (!placeholderMatchId) return;
+        await this.ioManager.restoreReplayFile(placeholderMatchId);
     }
 
-    private reset(): void {
-        this.setInjectState(InjectState.IDLE);
+
+    protected getViewFor(state: InjectStatus | null): InjectStatus | null {
+        return state;
+    }
+
+    protected async resetInternalState(): Promise<void> {
         this.targetMatchId = null;
         this.placeholderMatchId = null;
+        this.setState({
+            state: InjectState.IDLE,
+            targetMatchId: null,
+            placeholderMatchId: null,
+        });
     }
 }

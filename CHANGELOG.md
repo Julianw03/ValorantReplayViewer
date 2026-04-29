@@ -1,18 +1,16 @@
-> ## Persistent Storage Change
-> The persistent storage location of this app has changed.
-> From ```%LOCALAPPDATA%/VViewer``` to ```%LOCALAPPDATA%/ValorantReplayViewer```
-> Should you notice any files missing copy all files from the old location to the new one.
-
-
-## Changelog Version 0.3.0
-- For faster feedback and the ability to react to external changes, the app now can modify parts of its behavior via
-a configuration file. A simple editor has been added for that in the frontend.
-If you really know what you are doing you can also change it at ```%LOCALAPPDATA%/ValorantReplayViewer/config-overrides.yml```
+## Changelog Version 0.4.0
+- You can now see the download state of your matches in the recent tab already.
+- Bunch of stuff changed in the backend to fix inconsistencies and make working with the replay manager easier.
 
 ### Bug Fixes
-- Fixed a bug where the current valorant version could not be loaded when the logs were cleared.
+- Fixed a bug where username and tagline were empty as of the new patch.
 
 ### Known Issues
+- When running valorant for the first time after a version update the replay manager will wrongly assume that the old version is still active.
+This can be fixed by: 
+    - Starting Valorant and loading into the main menu
+    - Exiting Valorant
+    - Restarting Valorant as this will overwrite the stale version information from the file.
 - I have no way of verifying the SGP hosts for regions other than ``EU``. Should something NOT work for you and you are from outside the `EU` Region please do the following:
     - Start Valorant
     - Go to your match history and (re-) download a replay

@@ -3,7 +3,7 @@ import { EntitlementsToken, PluginEntitlementsApi } from '../../../gen';
 import { RCUMessageType } from '@/riotclient/messaging/RCUMessage';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import type { RiotClientService } from '@/riotclient/RiotClientService';
-import { EntitlementTokenDTO } from '@/caching/EntitlementTokenManager/EntitlementTokenDTO';
+import { EntitlementTokenDTO } from '@/caching/EntitlementTokenModule/EntitlementTokenDTO';
 
 @Injectable()
 export class EntitlementTokenManager extends ObjectDataManager<

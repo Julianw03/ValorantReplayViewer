@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { EntitlementTokenManager } from '@/caching/EntitlementTokenManager/EntitlementTokenManager';
+import { EntitlementTokenManager } from '@/caching/EntitlementTokenModule/EntitlementTokenManager';
 import { ProductSessionManager } from '@/caching/ProductSessionManager/ProductSessionManager';
 import { ValorantMatchStatsManager } from '@/caching/ValorantMatchStatsModule/ValorantMatchStatsManager';
 import { RiotMatchApiResponse } from '@/caching/ValorantMatchStatsModule/RiotMatchApiResponseDTO';

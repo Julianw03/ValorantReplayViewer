@@ -22,8 +22,17 @@ import { InjectButton } from '@/components/saved-replays/InjectButton.tsx';
 // columns are always aligned. Columns:  queue | map | version | stored | actions
 export const GRID_COLS = '6rem 1fr 10rem 10rem 8rem' as const;
 
+const ReplayRowButtons = {
+    INJECT: 'inject',
+    DOWNLOAD: 'download',
+    DELETE: 'delete',
+} as const;
+
+export type ReplayRowButtons = typeof ReplayRowButtons[keyof typeof ReplayRowButtons];
+
 interface ReplayRowProps {
     replay: ReplayMetadata;
+    shownButtons?: ReplayRowButtons[];
 }
 
 const renderPanel = (replay: ReplayMetadata) => {
@@ -66,7 +75,7 @@ const renderPanel = (replay: ReplayMetadata) => {
 
 };
 
-export function ReplayRow({ replay }: ReplayRowProps) {
+export function ReplayRow({ replay, shownButtons = Object.values(ReplayRowButtons) }: ReplayRowProps) {
     const [isOpen, setIsOpen] = useState(false);
     const { mutate: deleteMatch, isPending: isDeleting } = useDeleteMatch();
     const storedAt = useRelativeTime(replay.downloadInfo.downloadedAt);
@@ -126,32 +135,36 @@ export function ReplayRow({ replay }: ReplayRowProps) {
 
                 {/* Actions */}
                 <div className="flex items-center justify-end gap-1">
-                    <InjectButton replay={replay} />
-                    <Button size="icon-sm" variant="ghost" title="Download .vrp file" asChild>
-                        <a href={downloadHref} download={`${replay.matchInfo.matchId}.vrp`}>
-                            <Download />
-                        </a>
-                    </Button>
-                    <ConfirmDialog
-                        title="Delete replay?"
-                        description={<>
-                            This will permanently delete the replay for match{' '}
-                            <span className="font-mono">{truncateId(replay.matchInfo.matchId)}</span>.
-                            This action cannot be undone.
-                        </>}
-                        confirmLabel="Delete"
-                        onConfirm={() => deleteMatch(replay.matchInfo.matchId)}
-                    >
-                        <Button
-                            size="icon-sm"
-                            variant="ghost"
-                            title="Delete replay"
-                            disabled={isDeleting}
-                            className="text-muted-foreground hover:text-destructive"
-                        >
-                            {isDeleting ? <Loader2 className="animate-spin" /> : <Trash2 />}
+                    {shownButtons.includes(ReplayRowButtons.INJECT) && <InjectButton replay={replay} />}
+                    {shownButtons.includes(ReplayRowButtons.DOWNLOAD) && (
+                        <Button size="icon-sm" variant="ghost" title="Download .vrp file" asChild>
+                            <a href={downloadHref} download={`${replay.matchInfo.matchId}.vrp`}>
+                                <Download />
+                            </a>
                         </Button>
-                    </ConfirmDialog>
+                    )}
+                    {shownButtons.includes(ReplayRowButtons.DELETE) && (
+                        <ConfirmDialog
+                            title="Delete replay?"
+                            description={<>
+                                This will permanently delete the replay for match{' '}
+                                <span className="font-mono">{truncateId(replay.matchInfo.matchId)}</span>.
+                                This action cannot be undone.
+                            </>}
+                            confirmLabel="Delete"
+                            onConfirm={() => deleteMatch(replay.matchInfo.matchId)}
+                        >
+                            <Button
+                                size="icon-sm"
+                                variant="ghost"
+                                title="Delete replay"
+                                disabled={isDeleting}
+                                className="text-muted-foreground hover:text-destructive"
+                            >
+                                {isDeleting ? <Loader2 className="animate-spin" /> : <Trash2 />}
+                            </Button>
+                        </ConfirmDialog>
+                    )}
                     <CollapsibleTrigger asChild>
                         <Button size="icon-sm" variant="ghost" title="Show match details">
                             <ChevronLeft className={cn('transition-transform duration-150', isOpen && '-rotate-90')} />

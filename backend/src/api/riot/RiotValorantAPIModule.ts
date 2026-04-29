@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { EntitlementTokenModule } from '@/caching/EntitlementTokenManager/EntitlementTokenModule';
+import { EntitlementTokenModule } from '@/caching/EntitlementTokenModule/EntitlementTokenModule';
 import { ProductSessionModule } from '@/caching/ProductSessionManager/ProductSessionModule';
 import { RiotValorantAPI } from '@/api/riot/RiotValorantAPI';
 import { ValorantVersionInfoModule } from '@/caching/ValorantVersionInfo/ValorantVersionInfoModule';
