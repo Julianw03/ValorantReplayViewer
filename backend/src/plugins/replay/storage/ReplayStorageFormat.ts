@@ -1,11 +1,4 @@
-import {
-    IsString,
-    IsBoolean,
-    IsNumber,
-    IsArray,
-    ValidateNested,
-    IsUUID,
-} from 'class-validator';
+import { IsArray, IsBoolean, IsNumber, IsString, IsUUID, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export const REPLAY_FORMAT_VERSION = 1;

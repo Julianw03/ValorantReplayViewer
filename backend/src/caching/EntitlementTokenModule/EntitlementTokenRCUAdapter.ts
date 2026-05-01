@@ -1,6 +1,6 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { RCUDataAdapter } from '@/riotclient/adapters/RCUDataAdapter';
-import { EntitlementTokenManager } from '@/caching/EntitlementTokenManager/EntitlementTokenManager';
+import { EntitlementTokenManager } from '@/caching/EntitlementTokenModule/EntitlementTokenManager';
 import { RCUMessageType } from '@/riotclient/messaging/RCUMessage';
 import { EntitlementsToken, PluginEntitlementsApi } from '../../../gen';
 import { type RiotClientService } from '@/riotclient/RiotClientService';

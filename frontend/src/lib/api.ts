@@ -1,5 +1,6 @@
 import * as LocalLinkResolver from '@/lib/LocalLinkResolver.ts';
 import type { ProductSession } from '#/dto/ProductSession.ts';
+import type { DownloadStateDTO } from '#/dto/DownloadStateDTO.ts';
 
 export const API_BASE = LocalLinkResolver.resolve('/api/v1', 'http');
 
@@ -79,6 +80,7 @@ export type InjectState =
 export interface InjectStatus {
     state: InjectState;
     targetMatchId: string | null;
+    placeholderMatchId: string | null;
 }
 
 export interface DownloadState {
@@ -238,6 +240,7 @@ export const api = {
         get: () => request<MinimalVersionInfo>('/caching/valorant-version-info'),
     },
     storage: {
+        getAllDownloadStates: () => request<Record<string, DownloadStateDTO>>('/plugins/replay/storage/download-states'),
         getStatus: () => request<StorageStatus>('/plugins/replay/storage/status'),
         setup: () => request('/plugins/replay/storage', { method: 'POST' }),
         teardown: () => request('/plugins/replay/storage', { method: 'DELETE' }),
@@ -260,7 +263,7 @@ export const api = {
         retryDownload: (matchId: string) =>
             request(`/plugins/replay/remote/matches/recent/${matchId}/download/retry`, { method: 'POST' }),
         getDownloadState: (matchId: string) =>
-            request<DownloadState | null>(
+            request<DownloadStateDTO | null>(
                 `/plugins/replay/remote/matches/recent/${matchId}/download/state`,
             ),
     },

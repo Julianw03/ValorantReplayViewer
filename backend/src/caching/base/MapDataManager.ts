@@ -20,7 +20,7 @@ export abstract class MapDataManager<
 
     protected abstract getViewForValue(value: V | null): E | null;
 
-    public getViewFor(val: Map<K, V>): Record<K, E | null> {
+    protected getViewFor(val: Map<K, V>): Record<K, E | null> {
         if (val === null) {
             return {} as Record<K, E | null>;
         }

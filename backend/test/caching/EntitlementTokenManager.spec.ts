@@ -1,11 +1,11 @@
-import { EntitlementTokenManager } from '@/caching/EntitlementTokenManager/EntitlementTokenManager';
+import { EntitlementTokenManager } from '@/caching/EntitlementTokenModule/EntitlementTokenManager';
 import { Test, TestingModule } from '@nestjs/testing';
 import { RiotClientService } from '@/riotclient/RiotClientService';
 import { RIOT_CLIENT_SERVICE } from '@/riotclient/RiotClientTokens';
 import { EventEmitter2, EventEmitterModule } from '@nestjs/event-emitter';
 import { EntitlementsToken } from '../../gen';
 import { RCUMessage, RCUMessageType } from '@/riotclient/messaging/RCUMessage';
-import { EntitlementTokenRCUAdapter } from '@/caching/EntitlementTokenManager/EntitlementTokenRCUAdapter';
+import { EntitlementTokenRCUAdapter } from '@/caching/EntitlementTokenModule/EntitlementTokenRCUAdapter';
 import { _DISCONNECT_HANDLER } from '@/riotclient/adapters/RCUDataAdapter';
 
 describe('EntitlementTokenManager', () => {

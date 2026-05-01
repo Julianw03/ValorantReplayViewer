@@ -1,20 +1,6 @@
-import {
-    ConflictException,
-    Controller,
-    Delete,
-    Get,
-    HttpCode,
-    HttpStatus,
-    Logger,
-    NotFoundException,
-    Param,
-    Post,
-} from '@nestjs/common';
-import { ReplayIOManager } from '@/plugins/replay/storage/ReplayIOManager';
-import {
-    type InjectStatus,
-    ReplayInjectManager,
-} from '@/plugins/replay/injector/ReplayInjectManager';
+import { Controller, Delete, Get, HttpCode, HttpStatus, Logger, NotFoundException, Param, Post } from '@nestjs/common';
+import { ReplayIOManagerV2 } from '@/plugins/replay/storage/ReplayIOManagerV2';
+import { type InjectStatus, ReplayInjectManager } from '@/plugins/replay/injector/ReplayInjectManager';
 import { ApiOperation } from '@nestjs/swagger';
 
 @Controller({
@@ -25,9 +11,10 @@ export class ReplayInjectController {
     private readonly logger = new Logger(ReplayInjectController.name);
 
     constructor(
-        protected readonly replayIOManager: ReplayIOManager,
+        protected readonly replayIOManager: ReplayIOManagerV2,
         protected readonly replayInjectManager: ReplayInjectManager,
-    ) {}
+    ) {
+    }
 
     @Post('matches/:matchId')
     @ApiOperation({
@@ -36,12 +23,14 @@ export class ReplayInjectController {
     })
     @HttpCode(HttpStatus.ACCEPTED)
     async startInject(@Param('matchId') matchId: string): Promise<void> {
-        if (!(await this.replayIOManager.matchExists(matchId))) {
+        if (!this.replayIOManager.matchRegistered(matchId)) {
             throw new NotFoundException(
                 `Match ${matchId} not found in storage`,
             );
         }
-        this.replayInjectManager.startInject(matchId).catch((err) => {});
+        this.replayInjectManager.startInject(matchId).catch((err) => {
+            this.logger.warn('Error occured', err);
+        });
     }
 
     @Get('status')
@@ -50,7 +39,11 @@ export class ReplayInjectController {
         description: 'Returns current replay injection status.',
     })
     getInjectStatus(): InjectStatus {
-        return this.replayInjectManager.getStatus();
+        const status = this.replayInjectManager.getView();
+        if (!status) {
+            throw new NotFoundException();
+        }
+        return status;
     }
 
     @Delete('')

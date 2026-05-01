@@ -3,7 +3,7 @@ import { RiotClientModule } from '@/riotclient/RiotClientModule';
 import { ProductSessionModule } from '@/caching/ProductSessionManager/ProductSessionModule';
 import { ValorantGameSessionModule } from '@/caching/ValorantGameSessionModule/ValorantGameSessionModule';
 import { AccountNameAndTagLineModule } from '@/caching/AccountNameAndTagLineModule/AccountNameAndTagLineModule';
-import { EntitlementTokenModule } from '@/caching/EntitlementTokenManager/EntitlementTokenModule';
+import { EntitlementTokenModule } from '@/caching/EntitlementTokenModule/EntitlementTokenModule';
 import { ValorantMatchStatsModule } from '@/caching/ValorantMatchStatsModule/ValorantMatchStatsModule';
 import { EventBusModule } from '@/events/EventBusModule';
 import { ConfigModule } from '@nestjs/config';
@@ -12,19 +12,19 @@ import { ValorantGameLoopModule } from '@/caching/ValorantGameLoop/ValorantGameL
 import { RiotValorantAPIModule } from '@/api/riot/RiotValorantAPIModule';
 import { ValorantAssetAPIModule } from '@/api/NotOfficer/ValorantAssetAPIModule';
 import { ServeStaticModule } from '@nestjs/serve-static';
-import { join } from 'path';
 import { MapAssetResolverModule } from '@/caching/AssetResolving/MapAssetResolverModule';
 import { StaticAssetProxyModule } from '@/caching/AssetProxy/StaticAssetProxyModule';
 import { ValorantVersionInfoModule } from '@/caching/ValorantVersionInfo/ValorantVersionInfoModule';
 import { appConfig } from '@/config/configLoader';
 import { ConfigurationModule } from '@/config/ConfigurationModule';
 import { getPackageAwarePath } from '@/utils/PackagedPath';
+import { PuuidToPlayerAliasModule } from '@/caching/PuuidToPlayerAliasManager/PuuidToPlayerAliasModule';
 
 
 @Module({
     imports: [
         ServeStaticModule.forRoot({
-            rootPath: getPackageAwarePath("public"),
+            rootPath: getPackageAwarePath('public'),
             serveRoot: '/',
         }),
         ConfigModule.forRoot({
@@ -36,6 +36,7 @@ import { getPackageAwarePath } from '@/utils/PackagedPath';
         ProductSessionModule,
         AccountNameAndTagLineModule,
         ValorantGameSessionModule,
+        PuuidToPlayerAliasModule,
         EntitlementTokenModule,
         ValorantMatchStatsModule,
         ValorantGameLoopModule,

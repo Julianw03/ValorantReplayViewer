@@ -80,7 +80,9 @@ export function SavedReplaysPage() {
                                 <div>Downloaded</div>
                                 <div/>
                             </div>
-                            {storedMatches.map((replay) => (
+                            {storedMatches
+                                .sort((a, b) => (b?.downloadInfo?.downloadedAt ?? 0) - (a?.downloadInfo?.downloadedAt ?? 0))
+                                .map((replay) => (
                                 <ReplayRow key={replay.matchInfo.matchId} replay={replay}/>
                             ))}
                         </div>

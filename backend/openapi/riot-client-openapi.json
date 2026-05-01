@@ -2,8 +2,8 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Riot Client API",
-    "version": "130.0.2.4421",
-    "description": "Created with SDK - Version 26.3.2.0"
+    "version": "130.0.6.4449",
+    "description": "Created with SDK - Version 26.3.5.0"
   },
   "servers": [
     {
@@ -35829,6 +35829,14 @@
           "error",
           "code"
         ]
+      },
+      "AesUserInfo": {
+        "type": "object",
+        "properties": {
+          "userInfo": {
+            "type": "string"
+          }
+        }
       },
       "AesplaystationV2AuthorizationError": {
         "type": "string",
