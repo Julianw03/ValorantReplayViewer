@@ -182,6 +182,7 @@ export class ReplayInjectManager extends EmittingObjectDataManager<InjectStatus,
                                     'Failed to restore original replay file after inject',
                                     e,
                                 );
+                                this.handleFail();
                             });
                     }
                 },

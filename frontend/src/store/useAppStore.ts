@@ -57,6 +57,8 @@ interface AppState {
 
     setWsConnected: (connected: boolean) => void;
 
+    setCurrentInjectState: (currentInjectState: InjectStatus) => void;
+
     // downloadStates mutations
     setDownloadStates: (states: Record<string, DownloadStateDTO> | null) => void;
     setDownloadStat: (matchId: string, downloadState: DownloadStateDTO | null) => void;
@@ -132,6 +134,9 @@ export const useAppStore = create<AppState>((set) => {
 
     const setCurrentShippingVersion = (version: string | null) =>
         set({ currentValorantShippingVersion: version });
+
+    const setCurrentInjectStatus = (currentInjectState: InjectStatus) =>
+        set({ currentInjectState });
 
     // ---------------------------------------------------------------------------
     // WebSocket event router
@@ -234,6 +239,7 @@ export const useAppStore = create<AppState>((set) => {
         setWsConnected,
         setDownloadStates,
         setDownloadStat,
+        setCurrentInjectState: setCurrentInjectStatus,
         setMatchStatsCache,
         setMatchStat,
         setMapRegistry,

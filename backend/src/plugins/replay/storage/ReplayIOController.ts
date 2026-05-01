@@ -167,7 +167,7 @@ export class ReplayIOController {
         )
     }
 
-    @Get('storage/matches/:matchId/metadata')
+    @Get('matches/:matchId/metadata')
     @ApiOperation({
         summary: 'Get match metadata',
         description: 'Returns detailed metadata for a specific stored match.',

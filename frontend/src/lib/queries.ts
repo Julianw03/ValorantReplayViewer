@@ -16,6 +16,7 @@ export const queryKeys = {
     downloadStates: ['downloadStates'] as const,
     injectStatus: ['injectStatus'] as const,
     matchStats: (matchId: string) => ['matchStats', matchId] as const,
+    matchMetadata: (matchId: string) => ['matchMetadata', matchId] as const,
     mapRegistry: ['mapRegistry'] as const,
     productSessionRegistry: ['productSessionRegistry'] as const,
     effectiveConfig: ['effectiveConfig'] as const,
@@ -329,16 +330,21 @@ export function useProductSession(productId: string): ProductSession | null {
 // ---- Injector ----
 
 export function useInjectStatus() {
-    return useQuery({
+    const existing = useAppStore((s) => s.currentInjectState);
+    const setCurrentInjectState = useAppStore((s) => s.setCurrentInjectState);
+
+    useQuery({
         queryKey: queryKeys.injectStatus,
-        queryFn: () => api.injector.getStatus(),
-        refetchInterval: (query) => {
-            const state = query.state.data?.state;
-            const terminal = !state || state === 'IDLE' || state === 'INJECTED' || state === 'FAILED';
-            return terminal ? false : 3000;
+        queryFn: async () => {
+            const data = await api.injector.getStatus();
+            setCurrentInjectState(data);
+            return data;
         },
-        staleTime: 0,
+        staleTime: Infinity,
+        retry: 3,
     });
+
+    return existing;
 }
 
 export function useStartInject() {
@@ -403,5 +409,15 @@ export function useDeleteConfigOverrides() {
             queryClient.invalidateQueries({ queryKey: queryKeys.configOverrides });
             queryClient.invalidateQueries({ queryKey: queryKeys.effectiveConfig });
         },
+    });
+}
+
+export function useMatchMetadata(matchId: string, enabled = true) {
+    return useQuery({
+        queryKey: queryKeys.matchMetadata(matchId),
+        queryFn: () => api.storage.getMetadata(matchId),
+        enabled,
+        staleTime: Infinity,
+        retry: false,
     });
 }
