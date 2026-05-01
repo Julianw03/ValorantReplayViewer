@@ -1,6 +1,9 @@
 import { AsyncResult, AsyncResultType, AsyncResultUnion } from '#/utils/AsyncResult';
 import { MapDataManager } from '@/caching/base/MapDataManager';
 
+const TIMED_OUT = Symbol('TIMED_OUT');
+type TimedOut = typeof TIMED_OUT;
+
 export abstract class AsyncMapDataManager<K extends PropertyKey, T, V, E extends Error = Error>
     extends MapDataManager<K, AsyncResult<T, E>, AsyncResultUnion<V, E>> {
 
@@ -14,9 +17,10 @@ export abstract class AsyncMapDataManager<K extends PropertyKey, T, V, E extends
     }
 
     protected injectPromise(key: K, promise: Promise<T>): boolean {
-        if (this.pending.has(key)) return false;
-        const currentMarker = this.resetMarker;
+        let existing = this.pending.get(key);
+        if (existing) return false;
         this.pending.set(key, promise);
+        const currentMarker = this.resetMarker;
         this.setKeyValue(key, AsyncResult.pending());
 
         promise
@@ -30,7 +34,6 @@ export abstract class AsyncMapDataManager<K extends PropertyKey, T, V, E extends
             })
             .finally(() => {
                 if (this.resetMarker !== currentMarker) return;
-                this.pending.delete(key)
             });
         return true;
     }
@@ -58,20 +61,26 @@ export abstract class AsyncMapDataManager<K extends PropertyKey, T, V, E extends
         this.pending.clear();
     }
 
-    public async getBestEffortBatchedResult(keys: K[], timeoutMs?: number): Promise<Partial<Record<K, V>>> {
-        const timeoutPromise = timeoutMs
-            ? new Promise<never>((_, reject) =>
-                setTimeout(() => reject(new Error(`Timed out after ${timeoutMs}ms`)), timeoutMs),
-            )
-            : null;
 
-        await Promise.allSettled(
+    private awaitBestEffort(promise: Promise<T>, timeoutMs?: number): Promise<T | TimedOut> {
+        const guarded = promise.catch((): TimedOut => TIMED_OUT);
+        if (!timeoutMs) return guarded;
+
+        return new Promise<T | TimedOut>(resolve => {
+            const timer = setTimeout(() => resolve(TIMED_OUT), timeoutMs);
+            guarded.then(result => {
+                clearTimeout(timer);
+                resolve(result);
+            });
+        });
+    }
+
+    public async getBestEffortBatchedResult(keys: K[], timeoutMs?: number): Promise<Partial<Record<K, V>>> {
+        await Promise.all(
             keys.map(key => {
                 const promise = this.pending.get(key);
-                if (!promise) return Promise.resolve();
-                return timeoutPromise
-                    ? Promise.race([promise, timeoutPromise])
-                    : promise;
+                if (!promise) return;
+                return this.awaitBestEffort(promise, timeoutMs);
             })
         );
 
