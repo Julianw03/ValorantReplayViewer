@@ -145,6 +145,7 @@ export interface RiotMatchInfo {
     gameLengthMillis: number;
     gameStartMillis: number;
     isRanked: boolean;
+    isReplayRecorded: boolean;
 }
 
 export interface RiotMatchApiResponse {
@@ -245,6 +246,7 @@ export const api = {
         setup: () => request('/plugins/replay/storage', { method: 'POST' }),
         teardown: () => request('/plugins/replay/storage', { method: 'DELETE' }),
         listMatches: () => request<ReplayMetadata[]>('/plugins/replay/storage/matches'),
+        getMetadata: (matchId: string) => request<ReplayMetadata>(`/plugins/replay/storage/matches/${matchId}/metadata`),
         deleteMatch: (matchId: string) =>
             request(`/plugins/replay/storage/matches/${matchId}`, { method: 'DELETE' }),
         uploadReplay: (file: File, override = true) => {

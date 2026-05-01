@@ -32,6 +32,7 @@ interface DownloadButtonProps {
 }
 
 function DownloadButton({
+                            canDownload,
                             isDownloading,
                             isFailed,
                             isDownloaded,
@@ -67,6 +68,7 @@ function DownloadButton({
             size="icon-sm"
             variant="ghost"
             title="Download replay"
+            disabled={!canDownload}
             onClick={onDownload}
         >
             <Download />
@@ -91,6 +93,7 @@ export function MatchRow({ match }: MatchRowProps) {
     const matchStats = useAppStore((s) => s.matchStatsCache?.[match.MatchID]);
     const mapId = matchStats?.type === 'SUCCESS' ? matchStats.data.matchInfo.mapId : null;
     const mapAsset = useAppStore((s) => (mapId ? s.mapRegistry?.[mapId] ?? null : null));
+    const isDownloadAvailable = matchStats?.type === 'SUCCESS' ? matchStats.data.matchInfo?.isReplayRecorded : false;
 
     return (
         <Collapsible
@@ -134,10 +137,9 @@ export function MatchRow({ match }: MatchRowProps) {
                 <div className="text-xs text-muted-foreground">
                     {formatDate(match.GameStartTime)} · {relativeTime}
                 </div>
-
                 <div className="flex items-center justify-end gap-1">
                     <DownloadButton
-                        canDownload={canDownload}
+                        canDownload={canDownload && isDownloadAvailable}
                         isDownloading={isDownloading}
                         isFailed={isFailed}
                         isDownloaded={isDownloaded}

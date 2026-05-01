@@ -1,10 +1,10 @@
 import { CheckCircle2, Clock, Download, Info, Loader2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { queryKeys, useCancelInject } from '@/lib/queries';
+import { queryKeys, useCancelInject, useInjectStatus } from '@/lib/queries';
 import { cn } from '@/lib/utils';
 import { type InjectState, InjectStates } from '@/lib/api';
 import { useQueryClient } from '@tanstack/react-query';
-import { useAppStore } from '@/store/useAppStore.ts';
+import InjectMatchInfoTab from '@/components/saved-replays/InjectMatchInfoTab.tsx';
 
 const STEPS: { state: InjectState; label: string }[] = [
     { state: InjectStates.DOWNLOADING_PLACEHOLDER, label: 'Preparing' },
@@ -110,7 +110,7 @@ function ProgressSteps({ currentState }: { currentState: InjectState }) {
 
 export function InjectorPage() {
     const queryClient = useQueryClient();
-    const injectStatus = useAppStore((s) => s.currentInjectState);
+    const injectStatus = useInjectStatus();
     const { mutate: cancelInject, isPending: isCancelling } = useCancelInject();
 
     const injectState = injectStatus?.state ?? InjectStates.IDLE;
@@ -156,6 +156,11 @@ export function InjectorPage() {
                 <ProgressSteps currentState={injectState} />
             </div>
 
+            {
+                !!injectStatus?.targetMatchId ?
+                    <InjectMatchInfoTab matchId={injectStatus.targetMatchId!} /> :
+                    <></>
+            }
 
 
             {/* Contextual description */}
