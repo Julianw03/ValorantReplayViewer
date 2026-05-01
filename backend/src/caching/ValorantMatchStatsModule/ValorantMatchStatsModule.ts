@@ -5,9 +5,10 @@ import { EventBusModule } from '@/events/EventBusModule';
 import { ValorantMatchStatsController } from '@/caching/ValorantMatchStatsModule/ValorantMatchStatsController';
 import { RiotValorantAPIModule } from '@/api/riot/RiotValorantAPIModule';
 import { ProductSessionModule } from '@/caching/ProductSessionManager/ProductSessionModule';
+import { PuuidToPlayerAliasModule } from '@/caching/PuuidToPlayerAliasManager/PuuidToPlayerAliasModule';
 
 @Module({
-    imports: [RiotClientModule, RiotValorantAPIModule, EventBusModule, ProductSessionModule],
+    imports: [RiotClientModule, RiotValorantAPIModule, EventBusModule, ProductSessionModule, PuuidToPlayerAliasModule],
     controllers: [ValorantMatchStatsController],
     providers: [ValorantMatchStatsManager],
     exports: [ValorantMatchStatsManager],

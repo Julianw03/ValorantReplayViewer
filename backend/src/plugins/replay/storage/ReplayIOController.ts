@@ -158,7 +158,13 @@ export class ReplayIOController {
     @ApiNoContentResponse({ description: 'Match deleted successfully.' })
     @ApiNotFoundResponse({ description: 'Match not found.' })
     async deleteStoredMatch(@Param('matchId') matchId: string): Promise<void> {
-        await this.replayIOManager.deleteMatch(matchId);
+        return mapErrorAsync(
+            this.replayIOManager.deleteMatch(matchId),
+            new Map([
+                [MatchNotFoundError, (e) => new NotFoundException(e.message)],
+                [IllegalDownloadStateError, (e) => new ConflictException(e.message)],
+            ]),
+        )
     }
 
     @Get('storage/matches/:matchId/metadata')

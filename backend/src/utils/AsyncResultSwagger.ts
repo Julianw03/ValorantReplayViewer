@@ -13,13 +13,13 @@ ApiProperty({
     enumName: 'AsyncResultType',
     default: AsyncResultType.SUCCESS,
 })(Success.prototype, 'type');
-ApiProperty()(Success.prototype, 'data');
+ApiProperty({type: Object})(Success.prototype, 'data');
 ApiProperty({
     enum: AsyncResultType,
     enumName: 'AsyncResultType',
     default: AsyncResultType.FAILURE,
 })(Failure.prototype, 'type');
-ApiProperty()(Failure.prototype, 'error');
+ApiProperty({type: Object})(Failure.prototype, 'error');
 
 type ErrorConstructor<E extends Error> = new (...args: any[]) => E;
 

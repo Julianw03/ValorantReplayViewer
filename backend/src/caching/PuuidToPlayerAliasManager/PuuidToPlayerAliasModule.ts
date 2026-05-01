@@ -5,6 +5,7 @@ import { PuuidToPlayerAliasManager } from '@/caching/PuuidToPlayerAliasManager/P
 @Module({
     imports: [RiotClientModule],
     providers: [PuuidToPlayerAliasManager],
-    exports: [PuuidToPlayerAliasManager]
+    exports: [PuuidToPlayerAliasManager],
 })
-export class PuuidToPlayerAliasModule {}
+export class PuuidToPlayerAliasModule {
+}

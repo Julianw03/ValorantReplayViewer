@@ -57,9 +57,11 @@ export class ReplayFetchManager {
             .filter((p) => p !== undefined);
 
         try {
-            const resolvePuuidMap = await this.puuidManager.fetchPlayerAliasData(puuids);
+            this.puuidManager.requestBatchFetch(puuids);
+            const resolveMap = await this.puuidManager.getBestEffortBatchedResult(puuids, 5_000);
+
             for (const matchDetail of matchDetails?.players ?? []) {
-                const resolvedAlias = resolvePuuidMap[matchDetail.subject ?? ''];
+                const resolvedAlias = resolveMap[matchDetail.subject ?? ''];
                 if (resolvedAlias) {
                     matchDetail.gameName = resolvedAlias.gameName;
                     matchDetail.tagLine = resolvedAlias.tagLine;

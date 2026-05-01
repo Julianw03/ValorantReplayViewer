@@ -1,11 +1,14 @@
 ## Changelog Version 0.4.0
 - You can now see the download state of your matches in the recent tab already.
 - Bunch of stuff changed in the backend to fix inconsistencies and make working with the replay manager easier.
+- The download state of your recent matches is now also persistent and doesn't require periodic refreshing of the recent matches tab.
 
 ### Bug Fixes
-- Fixed a bug where username and tagline were empty as of the new patch.
+- Fixed a bug where username and tagline were empty as of the new patch (For newly saved replays)
+- Fixed potential file traversal issues when unpacking replays.
 
 ### Known Issues
+- Recent Matches do NOT have any player name or tagline information. For some reason Riot has omitted this information from the API. I am working on a fix (which already works for saving replays).
 - When running valorant for the first time after a version update the replay manager will wrongly assume that the old version is still active.
 This can be fixed by: 
     - Starting Valorant and loading into the main menu

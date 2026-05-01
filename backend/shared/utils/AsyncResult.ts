@@ -38,10 +38,6 @@ export abstract class AsyncResult<T, E extends Error> {
         }
     }
 
-    toPromise(): Promise<AsyncResult<T, E>> {
-        return Promise.resolve(this);
-    }
-
     isSuccess(): this is Success<T, E> {
         return this.type === AsyncResultType.SUCCESS;
     }
@@ -91,20 +87,28 @@ export class Pending<T, E extends Error> extends AsyncResult<T, E> {
 
 export class Success<T, E extends Error> extends AsyncResult<T, E> {
     readonly type = AsyncResultType.SUCCESS;
-    readonly data: T;
+    public readonly data: T;
 
     constructor(data: T) {
         super();
         this.data = data;
     }
+
+    toPromise(): Promise<T> {
+        return Promise.resolve(this.data);
+    }
 }
 
 export class Failure<T, E extends Error> extends AsyncResult<T, E> {
     readonly type = AsyncResultType.FAILURE;
-    readonly error: E;
+    public readonly error: E;
 
     constructor(error: E) {
         super();
         this.error = error;
+    }
+
+    toPromise(): Promise<never> {
+        return Promise.reject(this.error);
     }
 }

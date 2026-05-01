@@ -1,17 +1,10 @@
-import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { RCUDataAdapter } from '@/riotclient/adapters/RCUDataAdapter';
 import { RCUMessageType } from '@/riotclient/messaging/RCUMessage';
 import { RIOT_CLIENT_SERVICE } from '@/riotclient/RiotClientTokens';
 import { type RiotClientService } from '@/riotclient/RiotClientService';
 import { AresSessionPayload, ValorantGameLoopManager } from '@/caching/ValorantGameLoop/ValorantGameLoopManager';
 import { RiotValorantAPI } from '@/api/riot/RiotValorantAPI';
-import { filter, startWith, Subject, Subscription, switchMap, tap } from 'rxjs';
-import { SimpleEventBus } from '@/events/SimpleEventBus';
-import { onSource } from '@/events/adapters/rxjsAdapters';
-import { ProductSessionManager } from '@/caching/ProductSessionManager/ProductSessionManager';
-import { EventType } from '@/events/EventTypes';
-import { SimpleUUID } from '@/caching/ValorantMatchStatsModule/RiotMatchApiResponseDTO';
-import { StateUpdatedEvent } from '@/events/BasicEvent';
 
 interface RmsEnvelope {
     ackRequired: boolean;

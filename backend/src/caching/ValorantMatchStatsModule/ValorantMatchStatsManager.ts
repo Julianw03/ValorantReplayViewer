@@ -7,6 +7,7 @@ import { AsyncResult, AsyncResultUnion } from '#/utils/AsyncResult';
 import { MatchStatus } from '@/caching/ValorantGameSessionModule/MatchStatus';
 import { KeyValueUpdatedEvent } from '@/events/BasicEvent';
 import { RiotValorantAPI } from '@/api/riot/RiotValorantAPI';
+import { PuuidToPlayerAliasManager } from '@/caching/PuuidToPlayerAliasManager/PuuidToPlayerAliasManager';
 
 @Injectable()
 export class ValorantMatchStatsManager
@@ -25,6 +26,7 @@ export class ValorantMatchStatsManager
     constructor(
         protected readonly eventBus: SimpleEventBus,
         protected readonly valorantApi: RiotValorantAPI,
+        protected readonly playerAliasManager: PuuidToPlayerAliasManager,
     ) {
         super(eventBus);
     }
@@ -52,26 +54,47 @@ export class ValorantMatchStatsManager
         this.requestMatchFetch(matchId);
     }
 
-    public requestMatchFetch(matchId: SimpleUUID): void {
+    public async requestMatchFetch(matchId: SimpleUUID): Promise<void> {
         if (this.getEntryView(matchId) !== null) {
             return;
         }
         this.setKeyValue(matchId, AsyncResult.pending());
-        this.valorantApi
-            .getMatchDetails(matchId)
-            .then((data) => {
-                this.logger.debug(
-                    `Received match data for match ID ${matchId}`
-                );
-                this.setKeyValue(matchId, AsyncResult.success(data));
-            })
-            .catch((e) => {
-                this.logger.debug(
-                    `Failed to fetch match data for match ID ${matchId}`,
-                    e,
-                );
-                this.setKeyValue(matchId, AsyncResult.failure(e));
-            });
+
+        try {
+            const result = await this.valorantApi.getMatchDetails(matchId);
+            const puuids = result.players.map(p => p.subject).filter((p) => p !== undefined);
+            this.playerAliasManager.requestBatchFetch(puuids);
+            this.logger.debug(
+                `Requested player alias batch fetch for match ID ${matchId} with puuids: ${puuids.join(', ')}`,
+            );
+            const aliasMap = await this.playerAliasManager.getBestEffortBatchedResult(puuids, 5_000);
+
+            for (const player of result.players) {
+                const resolvedAlias = aliasMap[player.subject ?? ''];
+                if (resolvedAlias) {
+                    this.logger.debug(
+                        `Resolved alias for player with puuid ${player.subject} in match ID ${matchId}: ${resolvedAlias.gameName}#${resolvedAlias.tagLine}`,
+                    );
+                    player.gameName = resolvedAlias.gameName;
+                    player.tagLine = resolvedAlias.tagLine;
+                } else {
+                    this.logger.warn(
+                        `Failed to resolve alias for player with puuid ${player.subject} in match ID ${matchId}`,
+                    );
+                }
+            }
+
+            this.logger.debug(
+                `Received match data for match ID ${matchId}`,
+            );
+            this.setKeyValue(matchId, AsyncResult.success(result));
+        } catch (error) {
+            this.logger.debug(
+                `Failed to fetch match data for match ID ${matchId}`,
+                error,
+            );
+            this.setKeyValue(matchId, AsyncResult.failure(error));
+        }
     }
 
     protected async resetInternalState(): Promise<void> {

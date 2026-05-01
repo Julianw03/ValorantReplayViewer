@@ -113,7 +113,7 @@ export function InjectorPage() {
     const injectStatus = useAppStore((s) => s.currentInjectState);
     const { mutate: cancelInject, isPending: isCancelling } = useCancelInject();
 
-    const injectState = injectStatus?.state;
+    const injectState = injectStatus?.state ?? InjectStates.IDLE;
     const isActive = injectState !== InjectStates.IDLE;
 
     return (

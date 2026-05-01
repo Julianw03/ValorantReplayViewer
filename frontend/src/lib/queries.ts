@@ -174,7 +174,7 @@ export function useDownloadState(matchId: string): DownloadStateDTO | undefined 
  * manually comparing `DownloadState` enum values.
  */
 export function useDownloadStateFlags(matchId: string) {
-    const dto = useDownloadState(matchId);
+    const dto = useDownloadState(matchId) ?? undefined;
 
     return {
         /** No entry exists or the last attempt failed — a download can be started. */
@@ -261,8 +261,7 @@ export function useTriggerMatchStatsFetch() {
     return useMutation({
         mutationFn: (matchId: string) => api.matchStats.triggerFetch(matchId),
         onMutate: (matchId) => {
-            // Optimistically mark as pending so the panel shows a spinner immediately.
-            setMatchStat(matchId, { type: 'PENDING' } as unknown as MatchStatsResult);
+            setMatchStat(matchId, { type: 'PENDING' } as MatchStatsResult);
             queryClient.removeQueries({ queryKey: queryKeys.matchStats(matchId) });
         },
     });

@@ -91,6 +91,7 @@ export class ReplayInjectManager extends EmittingObjectDataManager<InjectStatus,
 
             // Ensure the placeholder is in persistent storage, downloading only if necessary.
             await this.ioManager.triggerDownload(this.placeholderMatchId);
+            await this.ioManager.moveToValorantDemos(this.placeholderMatchId);
 
             this.setState({
                 state: InjectState.AWAITING_REPLAY_START,
