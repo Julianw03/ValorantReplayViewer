@@ -25,6 +25,7 @@ export interface MatchInfo {
     premierMatchInfo: object;
     partyRRPenalties: Record<PUUID, number>;
     shouldMatchDisablePenalties: boolean;
+    isReplayRecorded: boolean;
 }
 
 export interface Player {
