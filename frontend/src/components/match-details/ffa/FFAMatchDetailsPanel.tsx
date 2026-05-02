@@ -1,7 +1,6 @@
 import type { MatchDetailsPanelProps, MinimalMatchPlayer } from '@/components/match-details/MatchDetailsPanel.tsx';
-import { formatDate, formatDuration, mapDisplayName } from '@/components/saved-replays/formatters.ts';
+import { formatDate, formatDuration } from '@/components/saved-replays/formatters.ts';
 import { cn } from '@/lib/utils.ts';
-import { useAppStore } from '@/store/useAppStore.ts';
 
 type LeaderboardRowProps = {
     player: MinimalMatchPlayer;
