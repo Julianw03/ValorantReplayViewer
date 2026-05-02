@@ -56,6 +56,7 @@ interface AppState {
     sessionRegistry: Record<string, ProductSession> | null;
 
     setWsConnected: (connected: boolean) => void;
+    setPlayerAlias: (alias: PlayerAlias) => void;
 
     setCurrentInjectState: (currentInjectState: InjectStatus) => void;
 
@@ -85,6 +86,7 @@ export const useAppStore = create<AppState>((set) => {
     // ---------------------------------------------------------------------------
 
     const setWsConnected = (connected: boolean) => set({ wsConnected: connected });
+    const setPlayerAlias = (alias: PlayerAlias) => set({ playerAlias: alias });
 
     const setDownloadStates = (states: Record<string, DownloadStateDTO> | null) =>
         set({ downloadStates: states });
@@ -237,6 +239,7 @@ export const useAppStore = create<AppState>((set) => {
         },
 
         setWsConnected,
+        setPlayerAlias,
         setDownloadStates,
         setDownloadStat,
         setCurrentInjectState: setCurrentInjectStatus,

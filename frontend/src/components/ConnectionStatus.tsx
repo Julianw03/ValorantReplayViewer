@@ -1,9 +1,10 @@
 import { Wifi, WifiOff } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
+import { usePlayerAlias } from '@/lib/queries.ts';
 
 export function ConnectionStatus() {
     const wsConnected = useAppStore((s) => s.wsConnected);
-    const playerAlias = useAppStore((s) => s.playerAlias);
+    const playerAlias = usePlayerAlias();
 
     return (
         <div className="flex items-center gap-3 px-2 py-1.5">
