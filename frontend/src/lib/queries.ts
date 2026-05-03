@@ -9,6 +9,7 @@ import { DownloadState, type DownloadStateDTO } from '#/dto/DownloadStateDTO.ts'
 
 export const queryKeys = {
     isConnected: ['isConnected'] as const,
+    playerAlias: ['playerAlias'] as const,
     storageStatus: ['storageStatus'] as const,
     storedMatches: ['storedMatches'] as const,
     currentShippingVersion: ['currentShippingVersion'] as const,
@@ -33,6 +34,25 @@ export function useIsConnected() {
         staleTime: 0,
         retry: 2,
     });
+}
+
+export function usePlayerAlias() {
+    const existing = useAppStore((s) => s.playerAlias);
+    const setPlayerAlias = useAppStore((s) => s.setPlayerAlias);
+
+    useQuery({
+        queryKey: queryKeys.playerAlias,
+        queryFn: async () => {
+            const alias = await api.account.getAlias();
+            setPlayerAlias(alias);
+            return alias;
+        },
+        enabled: existing === null,
+        staleTime: Infinity,
+        retry: 3
+    })
+
+    return existing;
 }
 
 export function useConnect() {

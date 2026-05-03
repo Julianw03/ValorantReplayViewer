@@ -1,5 +1,5 @@
 import type { MatchDetailsPanelProps, MinimalMatchPlayer } from '@/components/match-details/MatchDetailsPanel.tsx';
-import { formatDate, formatDuration, mapDisplayName } from '@/components/saved-replays/formatters.ts';
+import { formatDate, formatDuration } from '@/components/saved-replays/formatters.ts';
 import { cn } from '@/lib/utils.ts';
 
 type LeaderboardRowProps = {
@@ -102,10 +102,6 @@ export const FFAMatchDetailsPanel = ({
                 <span>{formatDate(matchInfo.gameStartMillis)}</span>
                 <span>·</span>
                 <span>{formatDuration(matchInfo.gameLengthMillis)}</span>
-                <span>·</span>
-                <span>{mapDisplayName(matchInfo.mapId)}</span>
-                <span>·</span>
-                <span className="font-mono">{matchInfo.gameVersion}</span>
             </div>
             <Leaderboard players={activePlayers} highlightPlayer={highlightPlayer} />
         </div>
