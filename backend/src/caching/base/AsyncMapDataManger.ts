@@ -1,8 +1,10 @@
 import { AsyncResult, AsyncResultType, AsyncResultUnion } from '#/utils/AsyncResult';
 import { MapDataManager } from '@/caching/base/MapDataManager';
+import { withMaxTimeout } from '@/utils/PromiseUtils';
 
 const TIMED_OUT = Symbol('TIMED_OUT');
 type TimedOut = typeof TIMED_OUT;
+export const _INTERNALS_INJECT_PROMISE = Symbol('INTERNALS_INJECT_PROMISE');
 
 export abstract class AsyncMapDataManager<K extends PropertyKey, T, V, E extends Error = Error>
     extends MapDataManager<K, AsyncResult<T, E>, AsyncResultUnion<V, E>> {
@@ -39,14 +41,11 @@ export abstract class AsyncMapDataManager<K extends PropertyKey, T, V, E extends
     }
 
     public getResult(key: K, timeoutMs?: number): Promise<T> {
-        const promise = this.pending.get(key) ?? Promise.reject(new Error(`No pending fetch for key ${String(key)}`));
-        if (!timeoutMs) return promise;
-        return Promise.race([
-            promise,
-            new Promise<never>((_, reject) =>
-                setTimeout(() => reject(new Error(`Timed out after ${timeoutMs}ms`)), timeoutMs),
-            ),
-        ]);
+        const promise = this.pending.get(key);
+        if (!promise) {
+            return Promise.reject(new Error(`No pending fetch for key ${String(key)}`))
+        }
+        return withMaxTimeout(promise, timeoutMs ?? 0);
     }
 
     protected getViewForValue(value: AsyncResult<T, E> | null): AsyncResultUnion<V, E> | null {
@@ -59,6 +58,7 @@ export abstract class AsyncMapDataManager<K extends PropertyKey, T, V, E extends
     protected override async resetInternalState(): Promise<void> {
         this.resetMarker++;
         this.pending.clear();
+        this.setState(new Map());
     }
 
 
@@ -93,4 +93,6 @@ export abstract class AsyncMapDataManager<K extends PropertyKey, T, V, E extends
         }
         return result;
     }
+
+    public [_INTERNALS_INJECT_PROMISE] = this.injectPromise.bind(this);
 }

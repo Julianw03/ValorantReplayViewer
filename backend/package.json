@@ -82,7 +82,6 @@
   "pkg": {
     "assets": [
       "dist/public/**/*",
-      "dist/gen/**/*",
       "dist/config.yml"
     ]
   },
@@ -101,7 +100,8 @@
       "**/*.(t|j)s"
     ],
     "moduleNameMapper": {
-      "^@/(.*)$": "<rootDir>/../src/$1"
+      "^@/(.*)$": "<rootDir>/../src/$1",
+      "^#/(.*)$": "<rootDir>/../shared/$1"
     },
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"

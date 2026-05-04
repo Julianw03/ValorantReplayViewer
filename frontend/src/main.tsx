@@ -5,13 +5,11 @@ import './index.css'
 import App from './app/App.tsx'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
-// Dark mode by default
 document.documentElement.classList.add('dark')
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Don't retry aggressively — surface errors quickly in a desktop app
       retry: 1,
     },
   },
