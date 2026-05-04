@@ -2,7 +2,8 @@ import { _INTERNALS_INJECT_PROMISE, AsyncMapDataManager } from '@/caching/base/A
 import { _INTERNALS_RESET_STATE } from '@/caching/base/GenericDataManager';
 import { AsyncResultType, Failure, Pending, Success } from '#/utils/AsyncResult';
 import { TimeoutError } from '@/utils/PromiseUtils';
-import * as process from 'node:process';
+import { describe, it, expect, beforeEach } from 'vitest';
+
 
 class RawData {
     raw: string;
@@ -14,7 +15,7 @@ class ViewData {
 
 const mapper = (value: RawData): ViewData => {
     return { view: value.raw };
-}
+};
 
 class TestAsyncManager extends AsyncMapDataManager<string, RawData, ViewData> {
     public constructor() {
@@ -57,7 +58,7 @@ describe('AsyncMapDataManager', () => {
         const externalView = manager.getEntryView('key') as Success<ViewData, Error>;
         expect(externalView?.type).toBe(AsyncResultType.SUCCESS);
         expect(externalView?.data).toStrictEqual(mapper(result));
-    })
+    });
 
     it('promise state "reject" gets correctly mapped', async () => {
         const error = new Error('fetch failed');
@@ -68,7 +69,7 @@ describe('AsyncMapDataManager', () => {
         expect(view).not.toBeNull();
         expect(view.type).toBe(AsyncResultType.FAILURE);
         expect(view.error).toStrictEqual(error);
-    })
+    });
 
     it('promise state "pending" gets correctly mapped', async () => {
         let resolve!: (v: RawData) => void;
@@ -81,7 +82,7 @@ describe('AsyncMapDataManager', () => {
         expect(view.type).toBe(AsyncResultType.PENDING);
 
         resolve({ raw: 'resolved' });
-    })
+    });
 
     it('getResult rejects with TimeoutError for long-lived promises', async () => {
         let resolve!: (v: RawData) => void;
@@ -113,5 +114,5 @@ describe('AsyncMapDataManager', () => {
         const view = manager.getEntryView('key');
         expect(view).toBeNull();
         await expect(manager.getResult('ok')).rejects.toThrow();
-    })
+    });
 });

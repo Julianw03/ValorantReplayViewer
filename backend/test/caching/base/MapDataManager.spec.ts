@@ -1,4 +1,5 @@
 import { _INTERNALS_MAP_DELETE_KEY, _INTERNALS_MAP_SET_KEY_VALUE, MapDataManager } from '@/caching/base/MapDataManager';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 class TestMapManager extends MapDataManager<string, number, string> {
 
@@ -34,4 +35,14 @@ describe('MapDataManager', () => {
         manager[_INTERNALS_MAP_DELETE_KEY]('a');
         expect(manager.getEntryView('a')).toBeNull();
     });
+
+    it('getView returns the entire object', async () => {
+        manager[_INTERNALS_MAP_SET_KEY_VALUE]('a', 100);
+        manager[_INTERNALS_MAP_SET_KEY_VALUE]('b', 200);
+
+        const view = manager.getView()!;
+        expect(view).not.toBeNull();
+        expect(view['a']).toEqual('value:100');
+        expect(view['b']).toEqual('value:200');
+    })
 })

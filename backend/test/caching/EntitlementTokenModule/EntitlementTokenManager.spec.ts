@@ -1,6 +1,7 @@
 import { EntitlementTokenManager } from '@/caching/EntitlementTokenModule/EntitlementTokenManager';
 import { EntitlementsToken } from '../../../gen';
 import { _INTERNALS_WRITE_STATE } from '@/caching/base/GenericDataManager';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 describe('EntitlementTokenManager', () => {
     const mockEntitlementToken: EntitlementsToken = {

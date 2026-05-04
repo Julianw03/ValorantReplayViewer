@@ -1,4 +1,4 @@
-name: create-artifacts
+name: test-and-create-artifacts
 on:
   push:
     branches: [ master ]
@@ -20,17 +20,41 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - run: |
+      - name: Prepare frontend
+        run: |
           cd frontend
           npm ci
-          npm run build
 
-      - run: |
+      - name: Test frontend
+        run: |
+          cd frontend
+          npm run typescript-check
+
+      - name:  Build frontend
+        run: |
+          cd frontend
+          npm run build 
+
+      - name: Setup backend
+        run: |
+            cd backend
+            mkdir -p public
+            cp -r ../frontend/dist/* public/
+            npm ci
+
+      - name: Generate Riot API types
+        run: |
+            cd backend
+            npm run generate
+
+      - name: Run backend tests
+        run: |
           cd backend
-          mkdir -p public
-          cp -r ../frontend/dist/* public/
-          npm ci
-          npm run generate
+          npm run test
+
+      - name: Build  backend
+        run: |
+          cd backend
           npm run build
 
       - name: Upload backend bundle
