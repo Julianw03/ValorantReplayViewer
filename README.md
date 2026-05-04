@@ -1,6 +1,6 @@
 # Valorant Replay Viewer (VRV)
 
-A desktop application that lets you browse and watch Valorant replays, including replays of your friends' matches and team scrimmages, without needing to be in the game at the time.
+A desktop application that lets you to download, share and watch Replays as if they were your own in Valorants Replay System. 
 
 > Currently in early development, expect bugs and missing features. The app is not yet feature complete and may be unstable.
 > Please report any issues you encounter and feel free to leave feedback or suggestions in the project's issue tracker.
@@ -9,19 +9,6 @@ Once the app runs [click here](http://localhost:3000) or open "http://localhost:
 
 ## How to use
 [Showcase Video](https://youtu.be/Pxiy_7opG3E)
-#### Recent Matches:
-- Shows your you recently played matches
-- You may download the replay for any finished match
-
-#### Stored Matches:
-- Shows you all your stored matches
-- You can download the matches to a directory of your choice and share it with others if you want
-- You can also import matches that your friends have downloaded with this app
-
-#### Injection:
-- Injecting a match allows you to view any replay file (of current game version) in the Valorant Client directly
-- After injection **START A REPLAY OF THE FIRST REPLAYABLE MATCH IN YOUR HISTORY**, it will look like the original replay
-is loaded initially but once you are loaded in the replay will be the one you have selected for injection.
 
 ## Disclaimer
 
@@ -44,7 +31,6 @@ its use may violate Riot Games’ Terms of Service.
 Valorant's built-in replay system requires you to download replays manually with no easy way to share them. 
 VRV solves this by allowing you to view Replays from all your account's and friends' recent matches in a single interface, 
 with no need to coordinate downloads or screen shares.
-VRV only supports viewing replays that are recorded by the Valorant servers. That means custom games are as of now not supported.
 
 ## Security notice
 
