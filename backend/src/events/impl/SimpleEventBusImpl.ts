@@ -19,7 +19,6 @@ export class SimpleEventBusImpl implements SimpleEventBus {
         if (!event.source || !event.type) {
             throw new Error('Event must have a source and type');
         }
-        this.logger.verbose(event);
         this.eventEmitter.emitAsync(`${event.source}:${event.type}`, event);
     }
 

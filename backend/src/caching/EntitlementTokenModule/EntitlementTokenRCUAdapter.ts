@@ -4,32 +4,31 @@ import { EntitlementTokenManager } from '@/caching/EntitlementTokenModule/Entitl
 import { RCUMessageType } from '@/riotclient/messaging/RCUMessage';
 import { EntitlementsToken, PluginEntitlementsApi } from '../../../gen';
 import { type RiotClientService } from '@/riotclient/RiotClientService';
-import { RIOT_CLIENT_SERVICE } from '@/riotclient/RiotClientTokens';
+import { RIOT_CLIENT_SERVICE, RIOT_CLIENT_STATE_DISPATCHING_SERVICE } from '@/riotclient/RiotClientTokens';
+import { AnyPathPattern, parsePatternString } from '@/riotclient/messaging/path/PatternParser';
+import type { RiotClientStateDispatcher } from '@/riotclient/RiotClientStateDispatcher';
+import { TrieRCUMessageDispatcher } from '@/riotclient/messaging/trie/TrieRCUMessageDispatcher';
 
 @Injectable()
 export class EntitlementTokenRCUAdapter extends RCUDataAdapter<EntitlementTokenManager> {
-    private static readonly REGEX = new RegExp(
-        '^/entitlements/v1/token$',
-        'gm',
-    );
+    private static PATH_PATTERNS = parsePatternString('/entitlements/v1/token');
 
     constructor(
         @Inject(RIOT_CLIENT_SERVICE)
-        protected readonly rcService: RiotClientService,
-        protected readonly entitlementTokenManager: EntitlementTokenManager,
+        rcService: RiotClientService,
+        manager: EntitlementTokenManager,
+        @Inject(RIOT_CLIENT_STATE_DISPATCHING_SERVICE)
+        stateDispatcher: RiotClientStateDispatcher,
+        messageDispatcher: TrieRCUMessageDispatcher,
     ) {
-        super(rcService, entitlementTokenManager);
-    }
-
-    protected getEndpointRegex(): RegExp {
-        return EntitlementTokenRCUAdapter.REGEX;
+        super(rcService, manager, stateDispatcher, messageDispatcher);
     }
 
     protected async handleRCUEvent(
-        type: RCUMessageType,
-        _: RegExpExecArray,
-        data: JsonNode,
+        forward,
     ): Promise<void> {
+        const type = forward.message.type;
+        const data = forward.message.data;
         switch (type) {
             case RCUMessageType.CREATE:
             case RCUMessageType.UPDATE: {
@@ -60,9 +59,13 @@ export class EntitlementTokenRCUAdapter extends RCUDataAdapter<EntitlementTokenM
         if (!resp || resp.status !== HttpStatus.OK) return;
         if (this.getState() === null) {
             this.logger.log(
-                'Setting initial entitlement token state'
+                'Setting initial entitlement token state',
             );
             this.setState(resp.data);
         }
+    }
+
+    protected getPathParts(): AnyPathPattern[] {
+        return EntitlementTokenRCUAdapter.PATH_PATTERNS;
     }
 }

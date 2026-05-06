@@ -5,9 +5,11 @@ import { LockfileParameterAcquisitionStrategy } from './connection/LockfileParam
 import {
     RIOT_CLIENT_PARAMETER_ACQUISITION_STRATEGY,
     RIOT_CLIENT_SERVICE,
+    RIOT_CLIENT_STATE_DISPATCHING_SERVICE,
 } from './RiotClientTokens';
 import { RiotClientController } from './RiotClientController';
-import { RiotClientListener } from '@/riotclient/RiotClientListener';
+import { RiotClientStateDispatcherImpl } from '@/riotclient/RiotClientStateDispatcherImpl';
+import { TrieRCUMessageDispatcher } from '@/riotclient/messaging/trie/TrieRCUMessageDispatcher';
 
 @Module({
     imports: [EventEmitterModule.forRoot()],
@@ -17,8 +19,11 @@ import { RiotClientListener } from '@/riotclient/RiotClientListener';
             provide: RIOT_CLIENT_PARAMETER_ACQUISITION_STRATEGY,
             useClass: LockfileParameterAcquisitionStrategy,
         },
-        { provide: RIOT_CLIENT_SERVICE, useClass: RiotClientServiceImpl }
+        { provide: RIOT_CLIENT_SERVICE, useClass: RiotClientServiceImpl },
+        { provide: RIOT_CLIENT_STATE_DISPATCHING_SERVICE, useClass: RiotClientStateDispatcherImpl },
+        TrieRCUMessageDispatcher,
     ],
-    exports: [RIOT_CLIENT_SERVICE],
+    exports: [RIOT_CLIENT_SERVICE, RIOT_CLIENT_STATE_DISPATCHING_SERVICE, TrieRCUMessageDispatcher],
 })
-export class RiotClientModule {}
+export class RiotClientModule {
+}

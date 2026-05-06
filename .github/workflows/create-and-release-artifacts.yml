@@ -24,19 +24,41 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Prepare frontend
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Test frontend
+        run: |
+          cd frontend
+          npm run typescript-check
+
       - name: Build frontend
         run: |
-          cd ./frontend
-          npm ci
-          npm run build
+          cd frontend
+          npm run build 
 
-      - name: Prepare backend bundle
+      - name: Setup backend
         run: |
-          cd ./backend
+          cd backend
           mkdir -p public
           cp -r ../frontend/dist/* public/
           npm ci
+
+      - name: Generate Riot API types
+        run: |
+          cd backend
           npm run generate
+
+      - name: Run backend tests
+        run: |
+          cd backend
+          npm run test
+
+      - name: Build  backend
+        run: |
+          cd backend
           npm run build
 
       - name: Upload backend bundle

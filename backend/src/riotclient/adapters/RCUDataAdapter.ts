@@ -8,6 +8,12 @@ import {
 import { OnEvent } from '@nestjs/event-emitter';
 import { RiotClientService } from '@/riotclient/RiotClientService';
 import { Logger } from '@nestjs/common';
+import { RiotClientStateDispatcher } from '@/riotclient/RiotClientStateDispatcher';
+import { ForwardedMessage, TrieRCUMessageDispatcher } from '@/riotclient/messaging/trie/TrieRCUMessageDispatcher';
+import { RCUConnectionState } from '@/riotclient/connection/RCUConnectionState';
+import { Subscription } from 'rxjs';
+import { PathPattern } from '@/riotclient/messaging/path/PathPattern';
+import { AnyPathPattern } from '@/riotclient/messaging/path/PatternParser';
 
 type InferState<M> = M extends GenericDataManager<infer T, any> ? T : never;
 
@@ -18,32 +24,40 @@ export const _CONNECT_HANDLER = Symbol('CONNECT_HANDLER');
 
 export abstract class RCUDataAdapter<M extends GenericDataManager<any, any>> {
     protected readonly logger = new Logger(this.constructor.name);
+    protected readonly rcuStateSubscription: Subscription;
+    protected readonly messagingSubscription: Subscription;
 
     protected constructor(
         protected readonly rcService: RiotClientService,
         protected readonly manager: M,
-    ) {}
+        protected readonly stateDispatcher: RiotClientStateDispatcher,
+        protected readonly messageDispatcher: TrieRCUMessageDispatcher,
+    ) {
+        this.rcuStateSubscription = stateDispatcher.onRCUConnectionState().subscribe((connectState) => {
+            switch (connectState) {
+                case RCUConnectionState.CONNECTED: {
+                    this.onConnected().catch();
+                    break;
+                }
+                case RCUConnectionState.DISCONNECTED: {
+                    this.onDisconnected().catch();
+                    break;
+                }
+                default:
+                    break;
+            }
+        });
+        const pathPats = this.getPathParts();
+        this.messagingSubscription = messageDispatcher.on(pathPats).subscribe((message) => {
+            this.handleRCUEvent(message).catch((err) => {});
+        })
+    }
 
-    protected abstract getEndpointRegex(): RegExp;
+    protected abstract getPathParts(): AnyPathPattern[]
 
     protected abstract handleRCUEvent(
-        type: RCUMessageType,
-        match: RegExpExecArray,
-        data: JsonNode,
+        message: ForwardedMessage
     ): Promise<void>;
-
-    @OnEvent('rcuMessage', { async: true })
-    async onMessage(message: RCUMessage) {
-        const regex = this.getEndpointRegex();
-        const match = regex.exec(message.uri);
-        if (!match) return;
-
-        await this.handleRCUEvent(
-            message.type,
-            match,
-            message.data as JsonNode,
-        );
-    }
 
     protected setState(data: InferState<M> | null) {
         this.manager[_INTERNALS_WRITE_STATE](data);
@@ -53,16 +67,16 @@ export abstract class RCUDataAdapter<M extends GenericDataManager<any, any>> {
         return this.manager[_INTERNALS_READ_STATE]();
     }
 
-    protected async handleConnected(): Promise<void> {}
-
-    protected async handleDisconnected(): Promise<void> {}
-
-    @OnEvent('rcuConnected', { async: true })
-    private async onConnected() {
-        await this.handleConnected();
+    protected async handleConnected(): Promise<void> {
     }
 
-    @OnEvent('rcuDisconnected', { async: true })
+    protected async handleDisconnected(): Promise<void> {
+    }
+
+    private async onConnected() {
+        this.handleConnected();
+    }
+
     private async onDisconnected() {
         await this.handleDisconnected();
         await this.manager[_INTERNALS_RESET_STATE]();

@@ -1,10 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { RCUDataAdapter } from '@/riotclient/adapters/RCUDataAdapter';
 import { RCUMessageType } from '@/riotclient/messaging/RCUMessage';
-import { RIOT_CLIENT_SERVICE } from '@/riotclient/RiotClientTokens';
+import { RIOT_CLIENT_SERVICE, RIOT_CLIENT_STATE_DISPATCHING_SERVICE } from '@/riotclient/RiotClientTokens';
 import { type RiotClientService } from '@/riotclient/RiotClientService';
 import { AresSessionPayload, ValorantGameLoopManager } from '@/caching/ValorantGameLoop/ValorantGameLoopManager';
 import { RiotValorantAPI } from '@/api/riot/RiotValorantAPI';
+import type { RiotClientStateDispatcher } from '@/riotclient/RiotClientStateDispatcher';
+import { ForwardedMessage, TrieRCUMessageDispatcher } from '@/riotclient/messaging/trie/TrieRCUMessageDispatcher';
+import { AnyPathPattern, parsePatternString } from '@/riotclient/messaging/path/PatternParser';
 
 interface RmsEnvelope {
     ackRequired: boolean;
@@ -19,27 +22,25 @@ interface RmsEnvelope {
 @Injectable()
 export class ValorantGameLoopRCUAdapter
     extends RCUDataAdapter<ValorantGameLoopManager> {
-    private static readonly ENDPOINT_REGEX =
-        /^\/riot-messaging-service\/v1\/message\/ares-session\/v1\/sessions\/.+$/;
+    private static PATH_PATTERNS = parsePatternString('/riot-messaging-service/v1/message/ares-session/v1/sessions/{sessionId}');
 
     constructor(
         @Inject(RIOT_CLIENT_SERVICE)
-        protected readonly rcService: RiotClientService,
-        protected readonly manager: ValorantGameLoopManager,
+        rcService: RiotClientService,
+        manager: ValorantGameLoopManager,
         protected readonly valApi: RiotValorantAPI,
+        @Inject(RIOT_CLIENT_STATE_DISPATCHING_SERVICE)
+        stateDispatcher: RiotClientStateDispatcher,
+        messageDispatcher: TrieRCUMessageDispatcher,
     ) {
-        super(rcService, manager);
-    }
-
-    protected getEndpointRegex(): RegExp {
-        return ValorantGameLoopRCUAdapter.ENDPOINT_REGEX;
+        super(rcService, manager, stateDispatcher, messageDispatcher);
     }
 
     protected async handleRCUEvent(
-        type: RCUMessageType,
-        match: RegExpExecArray,
-        data: JsonNode,
+        forward: ForwardedMessage,
     ): Promise<void> {
+        const type = forward.message.type;
+        const data = forward.message.data;
         switch (type) {
             case RCUMessageType.UPDATE:
             case RCUMessageType.CREATE:
@@ -68,5 +69,9 @@ export class ValorantGameLoopRCUAdapter
 
     async handleDisconnected(): Promise<void> {
 
+    }
+
+    protected getPathParts(): AnyPathPattern[] {
+        return ValorantGameLoopRCUAdapter.PATH_PATTERNS;
     }
 }

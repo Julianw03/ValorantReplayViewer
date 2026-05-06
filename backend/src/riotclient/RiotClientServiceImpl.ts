@@ -1,16 +1,17 @@
 import * as RiotclientParametersAcquisitionStrategy from './connection/RiotClientParametersAcquisitionStrategy';
 import { RiotClientService } from './RiotClientService';
-import { RiotServiceEvent } from './RiotClientServiceEventEmitter';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { RiotClientConnectionParameters } from './connection/RiotClientConnectionParameters';
 import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import * as https from 'node:https';
 import Websocket from 'ws';
 import { RCUMessage } from './messaging/RCUMessage';
-import { RIOT_CLIENT_PARAMETER_ACQUISITION_STRATEGY } from './RiotClientTokens';
+import { RIOT_CLIENT_PARAMETER_ACQUISITION_STRATEGY, RIOT_CLIENT_STATE_DISPATCHING_SERVICE } from './RiotClientTokens';
 import { AppInfo, Configuration, PluginRiotclientApi } from '../../gen';
 import { AxiosResponse } from 'axios';
 import { BaseAPI } from '../../gen/base';
+import { type RiotClientStateDispatcher } from '@/riotclient/RiotClientStateDispatcher';
+import { RCUConnectionState } from '@/riotclient/connection/RCUConnectionState';
+import { TrieRCUMessageDispatcher } from '@/riotclient/messaging/trie/TrieRCUMessageDispatcher';
 
 enum ConnectionState {
     DISCONNECTED = 'disconnected',
@@ -34,8 +35,11 @@ export class RiotClientServiceImpl implements RiotClientService {
     constructor(
         @Inject(RIOT_CLIENT_PARAMETER_ACQUISITION_STRATEGY)
         private readonly connectionStrategy: RiotclientParametersAcquisitionStrategy.RiotClientParametersAcquisitionStrategy,
-        private readonly eventEmitter: EventEmitter2, //TODO: Maybe use the centralized event bus ?
-    ) {}
+        @Inject(RIOT_CLIENT_STATE_DISPATCHING_SERVICE)
+        private readonly dispatcher: RiotClientStateDispatcher,
+        private readonly messageDispatcher: TrieRCUMessageDispatcher
+    ) {
+    }
 
     getCachedApi<T extends BaseAPI>(
         ApiClass: new (config: Configuration) => T,
@@ -46,12 +50,13 @@ export class RiotClientServiceImpl implements RiotClientService {
 
         const key = ApiClass.name;
 
-        if (!this.apiCache.has(key)) {
-            const instance = new ApiClass(this.configuration);
-            this.apiCache.set(key, instance);
+        let entry = this.apiCache.get(key);
+        if (!entry) {
+            entry = new ApiClass(this.configuration);
+            this.apiCache.set(key, entry);
         }
 
-        return this.apiCache.get(key);
+        return entry;
     }
 
     async doConnect(): Promise<void> {
@@ -100,7 +105,7 @@ export class RiotClientServiceImpl implements RiotClientService {
                 headers: {
                     Accept: 'application/json',
                 },
-                httpsAgent: tempAgent
+                httpsAgent: tempAgent,
             },
         });
 
@@ -113,7 +118,7 @@ export class RiotClientServiceImpl implements RiotClientService {
             if (e.response) {
                 if (e.response.status === HttpStatus.NOT_FOUND.valueOf()) {
                     this.logger.warn(
-                        "Riot Client REST API returned 404 for App-Info, most likely its in 'AppBackground' mode",
+                        'Riot Client REST API returned 404 for App-Info, most likely its in \'AppBackground\' mode',
                     );
                 }
 
@@ -137,7 +142,12 @@ export class RiotClientServiceImpl implements RiotClientService {
 
         const wsConnection = await this.awaitWsOpen(tempParameters);
 
-        this.emit('rcuConnected', undefined);
+        this.connectionParameters = tempParameters;
+        this.configuration = tempConfig;
+        this.httpsAgent = tempAgent;
+        this.Websocket = wsConnection;
+
+        this.dispatcher.emitRCUConnectionState(RCUConnectionState.CONNECTED).catch();
 
         wsConnection.on('close', (close) => {
             this.disconnect();
@@ -167,17 +177,13 @@ export class RiotClientServiceImpl implements RiotClientService {
                 eventData.data,
             );
 
-            this.emit('rcuMessage', message);
+            this.messageDispatcher.dispatch(message);
         });
 
         this.logger.debug(
             'WebSocket connection established, we are now connected',
         );
 
-        this.connectionParameters = tempParameters;
-        this.configuration = tempConfig;
-        this.httpsAgent = tempAgent;
-        this.Websocket = wsConnection;
 
         if (
             !this.compareAndSetConnectionState(
@@ -214,7 +220,7 @@ export class RiotClientServiceImpl implements RiotClientService {
 
         this.logger.debug('Disconnect called, cleaning up resources');
         this.connectionState = ConnectionState.DISCONNECTED;
-        this.emit('rcuDisconnected', undefined);
+        this.dispatcher.emitRCUConnectionState(RCUConnectionState.DISCONNECTED).catch();
         if (this.Websocket) {
             this.Websocket.close();
             this.Websocket.removeAllListeners();
@@ -285,27 +291,6 @@ export class RiotClientServiceImpl implements RiotClientService {
         return this.connectionState === ConnectionState.CONNECTED;
     }
 
-    on<Event extends keyof RiotServiceEvent>(
-        event: Event,
-        listener: (payload: RiotServiceEvent[Event]) => void,
-    ): void {
-        this.eventEmitter.on(event, listener);
-    }
-
-    off<Event extends keyof RiotServiceEvent>(
-        event: Event,
-        listener: (payload: RiotServiceEvent[Event]) => void,
-    ): void {
-        this.eventEmitter.off(event, listener);
-    }
-
-    emit<Event extends keyof RiotServiceEvent>(
-        event: Event,
-        payload: RiotServiceEvent[Event],
-    ): boolean {
-        return this.eventEmitter.emit(event, payload);
-    }
-
     onModuleDestroy(): any {
         this.logger.debug('Module is being destroyed, disconnecting');
         this.disconnect().catch((err) => {
@@ -313,7 +298,8 @@ export class RiotClientServiceImpl implements RiotClientService {
         });
     }
 
-    onModuleInit(): any {}
+    onModuleInit(): any {
+    }
 
     getConfiguration(): Configuration | null {
         if (!this.isConnected()) {
@@ -338,7 +324,7 @@ export class RiotClientServiceImpl implements RiotClientService {
     private setupAgent(params: RiotClientConnectionParameters) {
         const agentOptions = {
             port: params.port,
-            rejectUnauthorized: false
+            rejectUnauthorized: false,
         };
         return new https.Agent(agentOptions);
     }
