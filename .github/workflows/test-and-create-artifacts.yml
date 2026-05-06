@@ -6,7 +6,7 @@ on:
     branches: [ master ]
 
 jobs:
-  build-artifacts:
+  build-and-test-artifacts:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -65,27 +65,3 @@ jobs:
             backend/dist
             backend/package.json
             backend/package-lock.json
-
-  package-windows-artifacts:
-    runs-on: windows-latest
-    needs: build-artifacts
-
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: backend-bundle
-          path: backend
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-
-      - run: |
-          cd backend
-          npm ci
-          npm run package
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: windows-binary
-          path: backend/binaries
