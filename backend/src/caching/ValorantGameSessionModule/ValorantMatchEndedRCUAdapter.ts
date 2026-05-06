@@ -5,7 +5,10 @@ import { ValorantGameSessionManager } from '@/caching/ValorantGameSessionModule/
 import { RCUMessageType } from '@/riotclient/messaging/RCUMessage';
 import { MatchStatus } from '@/caching/ValorantGameSessionModule/MatchStatus';
 import { RCUMapDataAdapter } from '@/riotclient/adapters/RCUMapDataAdapter';
-import { RIOT_CLIENT_SERVICE } from '@/riotclient/RiotClientTokens';
+import { RIOT_CLIENT_SERVICE, RIOT_CLIENT_STATE_DISPATCHING_SERVICE } from '@/riotclient/RiotClientTokens';
+import { ForwardedMessage, TrieRCUMessageDispatcher } from '@/riotclient/messaging/trie/TrieRCUMessageDispatcher';
+import { AnyPathPattern, parsePatternString } from '@/riotclient/messaging/path/PatternParser';
+import type { RiotClientStateDispatcher } from '@/riotclient/RiotClientStateDispatcher';
 
 interface RMSMessage {
     ackRequired: boolean;
@@ -19,27 +22,27 @@ interface RMSMessage {
 
 @Injectable()
 export class ValorantMatchEndedRCUAdapter extends RCUMapDataAdapter<ValorantGameSessionManager> {
-    private static readonly REGEX = RegExp(
-        '^/riot-messaging-service/v1/messages/ares-match-details/match-details/v1/matches$',
-        'gm',
-    );
+    private static PATH_PATTERNS = parsePatternString('/riot-messaging-service/v1/messages/ares-match-details/match-details/v1/matches');
 
     constructor(
         @Inject(RIOT_CLIENT_SERVICE)
         protected readonly rcService: RiotClientService,
         protected readonly gameSessionManager: ValorantGameSessionManager,
+        @Inject(RIOT_CLIENT_STATE_DISPATCHING_SERVICE)
+        stateDispatcher: RiotClientStateDispatcher,
+        messageDispatcher: TrieRCUMessageDispatcher,
     ) {
-        super(rcService, gameSessionManager);
-    }
-
-    protected getEndpointRegex(): RegExp {
-        return ValorantMatchEndedRCUAdapter.REGEX;
+        super(rcService, gameSessionManager, stateDispatcher, messageDispatcher);
     }
 
     protected async handleRCUEvent(
-        type: RCUMessageType,
-        match: RegExpExecArray,
-        data: JsonNode,
+        {
+            message: {
+                type,
+                data,
+            },
+            matchResult,
+        }: ForwardedMessage,
     ): Promise<void> {
         switch (type) {
             case RCUMessageType.UPDATE:
@@ -54,5 +57,9 @@ export class ValorantMatchEndedRCUAdapter extends RCUMapDataAdapter<ValorantGame
             default:
                 break;
         }
+    }
+
+    protected getPathParts(): AnyPathPattern[] {
+        return ValorantMatchEndedRCUAdapter.PATH_PATTERNS;
     }
 }

@@ -4,37 +4,39 @@ import { ProductSessionManager } from '@/caching/ProductSessionManager/ProductSe
 import { RCUMessageType } from '@/riotclient/messaging/RCUMessage';
 import { PluginProductSessionApi, ProductSessionSession } from '../../../gen';
 import type { RiotClientService } from '@/riotclient/RiotClientService';
-import { RIOT_CLIENT_SERVICE } from '@/riotclient/RiotClientTokens';
+import { RIOT_CLIENT_SERVICE, RIOT_CLIENT_STATE_DISPATCHING_SERVICE } from '@/riotclient/RiotClientTokens';
+import type { RiotClientStateDispatcher } from '@/riotclient/RiotClientStateDispatcher';
+import { TrieRCUMessageDispatcher } from '@/riotclient/messaging/trie/TrieRCUMessageDispatcher';
+import { AnyPathPattern, parsePatternString } from '@/riotclient/messaging/path/PatternParser';
 
 @Injectable()
 export class ProductSessionRCUAdapter extends RCUMapDataAdapter<ProductSessionManager> {
+
+    private static PATH_PATTERNS = parsePatternString('/product-session/v1/sessions/{sessionId}');
+
     constructor(
         @Inject(RIOT_CLIENT_SERVICE)
-        protected readonly rcService: RiotClientService,
-        protected readonly manager: ProductSessionManager,
+        rcService: RiotClientService,
+        manager: ProductSessionManager,
+        @Inject(RIOT_CLIENT_STATE_DISPATCHING_SERVICE)
+        stateDispatcher: RiotClientStateDispatcher,
+        messageDispatcher: TrieRCUMessageDispatcher,
     ) {
-        super(rcService, manager);
-    }
-
-    private static readonly REGEX = RegExp(
-        '^/product-session/v1/sessions/(\\S[^/]+)$',
-        'gm',
-    );
-
-    protected getEndpointRegex(): RegExp {
-        return ProductSessionRCUAdapter.REGEX;
+        super(rcService, manager, stateDispatcher, messageDispatcher);
     }
 
     protected async handleRCUEvent(
-        type: RCUMessageType,
-        match: RegExpExecArray,
-        data: JsonNode,
+        forward,
     ): Promise<void> {
+        const type = forward.message.type;
+        const data = forward.message.data;
+        const match = forward.matchResult.params;
         switch (type) {
             case RCUMessageType.CREATE:
             case RCUMessageType.UPDATE: {
+                this.logger.log(match);
                 const typedData = data as unknown as ProductSessionSession;
-                const sessionId = match[1];
+                const sessionId = match['sessionId'];
                 if (this.getEntry(sessionId) === null) {
                     this.logger.log(
                         `Registering new product session with ID: ${sessionId}`,
@@ -45,7 +47,7 @@ export class ProductSessionRCUAdapter extends RCUMapDataAdapter<ProductSessionMa
                 break;
             }
             case RCUMessageType.DELETE: {
-                const sessionId = match[1];
+                const sessionId = match['sessionId'];
                 this.logger.log(
                     `Unregistering product session with ID: ${sessionId}`,
                 );
@@ -77,5 +79,9 @@ export class ProductSessionRCUAdapter extends RCUMapDataAdapter<ProductSessionMa
         this.logger.log(newState);
 
         this.setState(newState);
+    }
+
+    protected getPathParts(): AnyPathPattern[] {
+        return ProductSessionRCUAdapter.PATH_PATTERNS;
     }
 }

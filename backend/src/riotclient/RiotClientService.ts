@@ -1,12 +1,9 @@
-import { RiotClientServiceEventEmitter } from './RiotClientServiceEventEmitter';
 import { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Configuration } from '../../gen';
 import { BaseAPI } from '../../gen/base';
 
-export interface RiotClientService
-    extends RiotClientServiceEventEmitter,
-        OnModuleInit,
-        OnModuleDestroy {
+export interface RiotClientService extends OnModuleInit,
+    OnModuleDestroy {
     connect(): Promise<void>;
 
     disconnect(): Promise<void>;
