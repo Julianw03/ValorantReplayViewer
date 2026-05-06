@@ -14,7 +14,7 @@ import {
 import { ApiAcceptedResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { ReplayIOManagerV2 } from '@/plugins/replay/storage/ReplayIOManagerV2';
 import { GetRecentMatchesDto } from '@/plugins/replay/remote/GetRecentMatchesDTO';
-import { MatchHistoryEntry } from '@/api/riot/RiotValorantAPI';
+import { MatchHistoryEntry } from '@/api/riot/RiotValorantAPIManager';
 import { ProductSessionGuard, RequiredProduct } from '@/caching/ProductSessionManager/ProductSessionGuard';
 import { DownloadStateDTO } from '#/dto/DownloadStateDTO';
 

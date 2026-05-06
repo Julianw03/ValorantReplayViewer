@@ -15,8 +15,6 @@ configurations:
   valorant-version-read:
     regex: "CI server version: (\\S*)"
     retry-timeout-ms: 5000
-  valorant-api:
-    sgpHosts:
 overrides:
   valorant-version-read:
     version:

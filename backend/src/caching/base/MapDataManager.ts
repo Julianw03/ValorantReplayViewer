@@ -60,6 +60,10 @@ export abstract class MapDataManager<
         this.view[key] = this.getViewForValue(null);
     }
 
+    protected async resetInternalState(): Promise<void> {
+        this.setState(new Map());
+    }
+
     public [_INTERNALS_MAP_GET_ENTRY] = this.getEntryView.bind(this);
 
     public [_INTERNALS_MAP_SET_KEY_VALUE] = this.setKeyValue.bind(this);

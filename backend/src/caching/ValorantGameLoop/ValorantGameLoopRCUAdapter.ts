@@ -4,7 +4,7 @@ import { RCUMessageType } from '@/riotclient/messaging/RCUMessage';
 import { RIOT_CLIENT_SERVICE, RIOT_CLIENT_STATE_DISPATCHING_SERVICE } from '@/riotclient/RiotClientTokens';
 import { type RiotClientService } from '@/riotclient/RiotClientService';
 import { AresSessionPayload, ValorantGameLoopManager } from '@/caching/ValorantGameLoop/ValorantGameLoopManager';
-import { RiotValorantAPI } from '@/api/riot/RiotValorantAPI';
+import { RiotValorantAPIManager } from '@/api/riot/RiotValorantAPIManager';
 import type { RiotClientStateDispatcher } from '@/riotclient/RiotClientStateDispatcher';
 import { ForwardedMessage, TrieRCUMessageDispatcher } from '@/riotclient/messaging/trie/TrieRCUMessageDispatcher';
 import { AnyPathPattern, parsePatternString } from '@/riotclient/messaging/path/PatternParser';
@@ -28,7 +28,7 @@ export class ValorantGameLoopRCUAdapter
         @Inject(RIOT_CLIENT_SERVICE)
         rcService: RiotClientService,
         manager: ValorantGameLoopManager,
-        protected readonly valApi: RiotValorantAPI,
+        protected readonly valApi: RiotValorantAPIManager,
         @Inject(RIOT_CLIENT_STATE_DISPATCHING_SERVICE)
         stateDispatcher: RiotClientStateDispatcher,
         messageDispatcher: TrieRCUMessageDispatcher,

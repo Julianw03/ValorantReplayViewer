@@ -50,9 +50,6 @@ export class PuuidToPlayerAliasManager extends AsyncMapDataManager<
     }
 
 
-    protected async resetInternalState(): Promise<void> {
-    }
-
     protected async fetch(key: string): Promise<PlayerAccountLookupV2NamesetsForPuuidResponse> {
         const pluginApi = this.riotClientService.getCachedApi(PluginPlayerAccountApi);
 

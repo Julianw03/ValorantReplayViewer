@@ -104,24 +104,6 @@ export class AppConfigurationConfig {
     'additional-cors-origins': string[] = [];
 }
 
-export class ValorantApiConfig {
-    private static readonly DEFAULT_SGP_HOSTS: Record<SupportedRegion, string> = {
-        [SupportedRegion.NA]: 'https://usw2.pp.sgp.pvp.net',
-        [SupportedRegion.LATAM]: 'https://usw2.pp.sgp.pvp.net',
-        [SupportedRegion.BR]: 'https://usw2.pp.sgp.pvp.net',
-        [SupportedRegion.EU]: 'https://euc1.pp.sgp.pvp.net',
-        [SupportedRegion.AP]: 'https://apse1.pp.sgp.pvp.net',
-        [SupportedRegion.KR]: 'https://kr.pp.sgp.pvp.net',
-    };
-
-    @IsCompleteRegionToPvpUrlMap()
-    @Transform(({ value }) => ({
-        ...ValorantApiConfig.DEFAULT_SGP_HOSTS,
-        ...(value ?? {}),
-    }))
-    sgpHosts: Record<SupportedRegion, string> = ValorantApiConfig.DEFAULT_SGP_HOSTS;
-}
-
 export class Configurations {
     @ValidateNested()
     @Type(() => AppConfigurationConfig)
@@ -130,10 +112,6 @@ export class Configurations {
     @ValidateNested()
     @Type(() => VersionReadConfiguration)
     'valorant-version-read': VersionReadConfiguration;
-
-    @ValidateNested()
-    @Type(() => ValorantApiConfig)
-    'valorant-api': ValorantApiConfig;
 }
 
 export class ValorantVersionReadOverrides {

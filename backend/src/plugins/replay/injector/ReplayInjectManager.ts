@@ -3,7 +3,7 @@ import { SimpleEventBus } from '@/events/SimpleEventBus';
 import { EventType } from '@/events/EventTypes';
 import { StateUpdatedEvent } from '@/events/BasicEvent';
 import { ValorantGameLoopManager } from '@/caching/ValorantGameLoop/ValorantGameLoopManager';
-import { RiotValorantAPI } from '@/api/riot/RiotValorantAPI';
+import { RiotValorantAPIManager } from '@/api/riot/RiotValorantAPIManager';
 import { EmittingObjectDataManager } from '@/caching/base/EmittingObjectDataManager';
 import { ReplayIOManagerV2 } from '@/plugins/replay/storage/ReplayIOManagerV2';
 
@@ -32,7 +32,7 @@ export class ReplayInjectManager extends EmittingObjectDataManager<InjectStatus,
     private unsubscribeFromSession: (() => void) | null = null;
 
     constructor(
-        private readonly apiClient: RiotValorantAPI,
+        private readonly apiClient: RiotValorantAPIManager,
         private readonly ioManager: ReplayIOManagerV2,
         protected readonly eventBus: SimpleEventBus,
     ) {

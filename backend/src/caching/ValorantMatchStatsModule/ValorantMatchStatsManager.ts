@@ -6,7 +6,7 @@ import { SimpleEventBus } from '@/events/SimpleEventBus';
 import { AsyncResult, AsyncResultUnion } from '#/utils/AsyncResult';
 import { MatchStatus } from '@/caching/ValorantGameSessionModule/MatchStatus';
 import { KeyValueUpdatedEvent } from '@/events/BasicEvent';
-import { RiotValorantAPI } from '@/api/riot/RiotValorantAPI';
+import { RiotValorantAPIManager } from '@/api/riot/RiotValorantAPIManager';
 import { PuuidToPlayerAliasManager } from '@/caching/PuuidToPlayerAliasManager/PuuidToPlayerAliasManager';
 
 @Injectable()
@@ -25,7 +25,7 @@ export class ValorantMatchStatsManager
 
     constructor(
         protected readonly eventBus: SimpleEventBus,
-        protected readonly valorantApi: RiotValorantAPI,
+        protected readonly valorantApi: RiotValorantAPIManager,
         protected readonly playerAliasManager: PuuidToPlayerAliasManager,
     ) {
         super(eventBus);

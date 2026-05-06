@@ -58,7 +58,7 @@ export abstract class AsyncMapDataManager<K extends PropertyKey, T, V, E extends
     protected override async resetInternalState(): Promise<void> {
         this.resetMarker++;
         this.pending.clear();
-        this.setState(new Map());
+        await super.resetInternalState();
     }
 
 
