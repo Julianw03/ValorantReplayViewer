@@ -28,23 +28,11 @@ interface FormState {
     // configurations.valorant-version-read
     retryTimeoutMs: string
     regex: string
-    // configurations.valorant-api
-    sgpHosts: Record<string, string>          // keyed by SupportedRegion
     // filepaths
     riotGamesFolderEnvVar: string
     riotGamesFolderPath: string               // newline-delimited segments
     valorantSavedEnvVar: string
     valorantSavedPath: string
-}
-
-const REGIONS: SupportedRegion[] = ['na', 'latam', 'eu', 'ap', 'kr', 'br']
-const SGP_DEFAULTS: Record<SupportedRegion, string> = {
-    na: 'https://usw2.pp.sgp.pvp.net',
-    latam: 'https://usw2.pp.sgp.pvp.net',
-    br: 'https://usw2.pp.sgp.pvp.net',
-    eu: 'https://euc1.pp.sgp.pvp.net',
-    ap: 'https://apse1.pp.sgp.pvp.net',
-    kr: 'https://kr.pp.sgp.pvp.net',
 }
 
 const EMPTY_FORM: FormState = {
@@ -55,7 +43,6 @@ const EMPTY_FORM: FormState = {
     corsOrigins: [],
     retryTimeoutMs: '',
     regex: '',
-    sgpHosts: Object.fromEntries(REGIONS.map(r => [r, ''])),
     riotGamesFolderEnvVar: '',
     riotGamesFolderPath: '',
     valorantSavedEnvVar: '',
@@ -79,12 +66,6 @@ function overridesToForm(overrides: ConfigOverrides | null): FormState {
             ? String(cfg['valorant-version-read']['retry-timeout-ms'])
             : '',
         regex: cfg?.['valorant-version-read']?.regex ?? '',
-        sgpHosts: Object.fromEntries(
-            REGIONS.map(r => {
-                const saved = cfg?.['valorant-api']?.sgpHosts?.[r] ?? ''
-                return [r, saved && saved !== SGP_DEFAULTS[r as SupportedRegion] ? saved : '']
-            })
-        ),
         riotGamesFolderEnvVar: fp?.['riot-games-folder']?.relativeToEnvVar ?? '',
         riotGamesFolderPath: (fp?.['riot-games-folder']?.path ?? []).join('\n'),
         valorantSavedEnvVar: fp?.['valorant-saved']?.relativeToEnvVar ?? '',
@@ -99,9 +80,6 @@ function omitUndefined<T extends object>(obj: T): Partial<T> {
 }
 
 function formToOverrides(form: FormState): ConfigOverrides {
-    const sgpHosts = omitUndefined(
-        Object.fromEntries(REGIONS.map(r => [r, form.sgpHosts[r] || undefined]))
-    )
     const rgPath = form.riotGamesFolderPath.split('\n').map(s => s.trim()).filter(Boolean)
     const vsPath = form.valorantSavedPath.split('\n').map(s => s.trim()).filter(Boolean)
 
@@ -120,9 +98,6 @@ function formToOverrides(form: FormState): ConfigOverrides {
     const valorantVersionReadConfig = omitUndefined({
         'retry-timeout-ms': form.retryTimeoutMs ? Number(form.retryTimeoutMs) : undefined,
         regex: form.regex || undefined,
-    })
-    const valorantApiConfig = omitUndefined({
-        sgpHosts: Object.keys(sgpHosts).length ? sgpHosts : undefined,
     })
 
     const riotGamesFolder = (form.riotGamesFolderEnvVar || rgPath.length)
@@ -145,7 +120,6 @@ function formToOverrides(form: FormState): ConfigOverrides {
     const configurations = omitUndefined({
         app: Object.keys(appConfig).length ? appConfig : undefined,
         'valorant-version-read': Object.keys(valorantVersionReadConfig).length ? valorantVersionReadConfig : undefined,
-        'valorant-api': Object.keys(valorantApiConfig).length ? valorantApiConfig : undefined,
     })
     const filepaths = omitUndefined({
         'riot-games-folder': riotGamesFolder,
@@ -284,11 +258,6 @@ export function ConfigPage() {
         setIsDirty(true)
     }
 
-    function updateSgpHost(region: string, url: string) {
-        setForm(prev => ({ ...prev, sgpHosts: { ...prev.sgpHosts, [region]: url } }))
-        setIsDirty(true)
-    }
-
     function handleSave() {
         saveOverrides(formToOverrides(form), { onSuccess: () => setIsDirty(false) })
     }
@@ -403,22 +372,6 @@ export function ConfigPage() {
                         <FieldRow label="Shard" description="Override the shard derived from the region." effective={effShard ?? null}>
                             <NativeSelect value={form.shard} onChange={v => update('shard', v as SupportedShard | '')}
                                           options={SUPPORTED_SHARDS} placeholder="Default (derived from region)" disabled={isBusy} />
-                        </FieldRow>
-                        <FieldRow label="Player preferences hosts" description="Per-region player preference endpoint URLs. Leave blank to use the built-in default for that region.">
-                            <div className="flex flex-col gap-2 w-full">
-                                {REGIONS.map(region => (
-                                    <div key={region} className="flex items-center gap-2">
-                                        <span className="w-12 shrink-0 font-mono text-xs text-muted-foreground uppercase">{region}</span>
-                                        <Input
-                                            value={form.sgpHosts[region]}
-                                            onChange={e => updateSgpHost(region, e.target.value)}
-                                            placeholder={SGP_DEFAULTS[region as SupportedRegion]}
-                                            className="font-mono text-xs h-8"
-                                            disabled={isBusy}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
                         </FieldRow>
                     </div>
 
