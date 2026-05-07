@@ -1,5 +1,5 @@
 import { Controller, Delete, Get, HttpCode, HttpStatus, Logger, NotFoundException, Param, Post } from '@nestjs/common';
-import { ReplayIOManagerV2 } from '@/plugins/replay/storage/ReplayIOManagerV2';
+import { ReplayIOManager } from '@/plugins/replay/storage/ReplayIOManager';
 import { type InjectStatus, ReplayInjectManager } from '@/plugins/replay/injector/ReplayInjectManager';
 import { ApiOperation } from '@nestjs/swagger';
 
@@ -11,7 +11,7 @@ export class ReplayInjectController {
     private readonly logger = new Logger(ReplayInjectController.name);
 
     constructor(
-        protected readonly replayIOManager: ReplayIOManagerV2,
+        protected readonly replayIOManager: ReplayIOManager,
         protected readonly replayInjectManager: ReplayInjectManager,
     ) {
     }

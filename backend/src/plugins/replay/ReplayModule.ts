@@ -11,7 +11,7 @@ import { ValorantGameLoopModule } from '@/caching/ValorantGameLoop/ValorantGameL
 import { RiotValorantAPIModule } from '@/api/riot/RiotValorantAPIModule';
 import { ValorantMatchStatsModule } from '@/caching/ValorantMatchStatsModule/ValorantMatchStatsModule';
 import { ConfigModule } from '@nestjs/config';
-import { ReplayIOManagerV2 } from '@/plugins/replay/storage/ReplayIOManagerV2';
+import { ReplayIOManager } from '@/plugins/replay/storage/ReplayIOManager';
 import { ReplayIOController } from '@/plugins/replay/storage/ReplayIOController';
 import { PuuidToPlayerAliasModule } from '@/caching/PuuidToPlayerAliasManager/PuuidToPlayerAliasModule';
 
@@ -27,7 +27,7 @@ import { PuuidToPlayerAliasModule } from '@/caching/PuuidToPlayerAliasManager/Pu
         RiotValorantAPIModule,
         ConfigModule,
     ],
-    providers: [ReplayIOManagerV2, ReplayFetchManager, ReplayInjectManager],
+    providers: [ReplayIOManager, ReplayFetchManager, ReplayInjectManager],
     controllers: [
         ReplayIOController,
         ReplayRemoteController,

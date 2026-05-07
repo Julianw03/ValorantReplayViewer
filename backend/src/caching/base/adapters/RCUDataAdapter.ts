@@ -1,28 +1,13 @@
-import { RCUMessage, RCUMessageType } from '@/riotclient/messaging/RCUMessage';
-import {
-    _INTERNALS_READ_STATE,
-    _INTERNALS_RESET_STATE,
-    _INTERNALS_WRITE_STATE,
-    GenericDataManager,
-} from '@/caching/base/GenericDataManager';
-import { OnEvent } from '@nestjs/event-emitter';
-import { RiotClientService } from '@/riotclient/RiotClientService';
 import { Logger } from '@nestjs/common';
-import { RiotClientStateDispatcher } from '@/riotclient/RiotClientStateDispatcher';
+import { Subscription } from 'rxjs';
 import { ForwardedMessage, TrieRCUMessageDispatcher } from '@/riotclient/messaging/trie/TrieRCUMessageDispatcher';
 import { RCUConnectionState } from '@/riotclient/connection/RCUConnectionState';
-import { Subscription } from 'rxjs';
-import { PathPattern } from '@/riotclient/messaging/path/PathPattern';
+import { RiotClientService } from '@/riotclient/RiotClientService';
+import { RiotClientStateDispatcher } from '@/riotclient/RiotClientStateDispatcher';
 import { AnyPathPattern } from '@/riotclient/messaging/path/PatternParser';
+import { DataDeletable } from '@/caching/base/interfaces/capabilities/DataDeletable';
 
-type InferState<M> = M extends GenericDataManager<infer T, any> ? T : never;
-
-type InferView<M> = M extends GenericDataManager<any, infer E> ? E : never;
-
-export const _DISCONNECT_HANDLER = Symbol('DISCONNECT_HANDLER');
-export const _CONNECT_HANDLER = Symbol('CONNECT_HANDLER');
-
-export abstract class RCUDataAdapter<M extends GenericDataManager<any, any>> {
+export abstract class RCUDataAdapter<M extends DataDeletable> {
     protected readonly logger = new Logger(this.constructor.name);
     protected readonly rcuStateSubscription: Subscription;
     protected readonly messagingSubscription: Subscription;
@@ -49,23 +34,16 @@ export abstract class RCUDataAdapter<M extends GenericDataManager<any, any>> {
         });
         const pathPats = this.getPathParts();
         this.messagingSubscription = messageDispatcher.on(pathPats).subscribe((message) => {
-            this.handleRCUEvent(message).catch((err) => {});
-        })
+            this.handleRCUEvent(message).catch((err) => {
+            });
+        });
     }
 
     protected abstract getPathParts(): AnyPathPattern[]
 
     protected abstract handleRCUEvent(
-        message: ForwardedMessage
+        message: ForwardedMessage,
     ): Promise<void>;
-
-    protected setState(data: InferState<M> | null) {
-        this.manager[_INTERNALS_WRITE_STATE](data);
-    }
-
-    protected getState(): InferState<M> {
-        return this.manager[_INTERNALS_READ_STATE]();
-    }
 
     protected async handleConnected(): Promise<void> {
     }
@@ -79,14 +57,6 @@ export abstract class RCUDataAdapter<M extends GenericDataManager<any, any>> {
 
     private async onDisconnected() {
         await this.handleDisconnected();
-        await this.manager[_INTERNALS_RESET_STATE]();
-    }
-
-    public [_DISCONNECT_HANDLER](): Promise<void> {
-        return this.onDisconnected();
-    }
-
-    public [_CONNECT_HANDLER](): Promise<void> {
-        return this.onConnected();
+        this.manager.deleteState();
     }
 }

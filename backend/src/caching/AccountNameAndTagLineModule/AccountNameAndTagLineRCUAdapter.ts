@@ -1,13 +1,13 @@
 import { type RiotClientService } from '@/riotclient/RiotClientService';
 import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { RIOT_CLIENT_STATE_DISPATCHING_SERVICE, RIOT_CLIENT_SERVICE } from '@/riotclient/RiotClientTokens';
-import { RCUDataAdapter } from '@/riotclient/adapters/RCUDataAdapter';
 import { AccountNameAndTagLineManager } from '@/caching/AccountNameAndTagLineModule/AccountNameAndTagLineManager';
 import { RCUMessageType } from '@/riotclient/messaging/RCUMessage';
 import { PlayerAccountGameNameAndTagLine, PluginPlayerAccountApi } from '../../../gen';
 import { AnyPathPattern, parsePatternString } from '@/riotclient/messaging/path/PatternParser';
 import { type RiotClientStateDispatcher } from '@/riotclient/RiotClientStateDispatcher';
 import { ForwardedMessage, TrieRCUMessageDispatcher } from '@/riotclient/messaging/trie/TrieRCUMessageDispatcher';
+import { RCUDataAdapter } from '@/caching/base/adapters/RCUDataAdapter';
 
 @Injectable()
 export class AccountNameAndTagLineRCUAdapter extends RCUDataAdapter<AccountNameAndTagLineManager> {
@@ -43,11 +43,11 @@ export class AccountNameAndTagLineRCUAdapter extends RCUDataAdapter<AccountNameA
         switch (type) {
             case RCUMessageType.CREATE:
             case RCUMessageType.UPDATE: {
-                this.setState(data as PlayerAccountGameNameAndTagLine);
+                this.manager.updateValue(data as PlayerAccountGameNameAndTagLine);
                 break;
             }
             case RCUMessageType.DELETE: {
-                this.setState(null);
+                this.manager.deleteState();
                 break;
             }
         }
@@ -66,12 +66,12 @@ export class AccountNameAndTagLineRCUAdapter extends RCUDataAdapter<AccountNameA
                 return null;
             });
         if (!resp || resp.status !== HttpStatus.OK) return;
-        if (this.getState() === null) {
+        if (this.manager.getView() === null) {
             this.logger.log(
                 'Setting initial entitlement token state',
                 resp.data,
             );
-            this.setState(resp.data);
+            this.manager.updateValue(resp.data);
         }
     }
 

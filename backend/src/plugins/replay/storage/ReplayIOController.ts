@@ -21,8 +21,8 @@ import {
     InvalidReplayArchiveError,
     MatchAlreadyExistsError,
     MatchNotFoundError,
-    ReplayIOManagerV2,
-} from '@/plugins/replay/storage/ReplayIOManagerV2';
+    ReplayIOManager,
+} from '@/plugins/replay/storage/ReplayIOManager';
 import {
     ApiCreatedResponse,
     ApiNoContentResponse,
@@ -44,7 +44,7 @@ import { mapErrorAsync } from '@/utils/AsyncResultSwagger';
 export class ReplayIOController {
     private readonly logger = new Logger(ReplayIOController.name);
 
-    constructor(protected readonly replayIOManager: ReplayIOManagerV2) {
+    constructor(protected readonly replayIOManager: ReplayIOManager) {
     }
 
     @Post('')

@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ReplayMetadata } from '@/plugins/replay/storage/ReplayStorageFormat';
 import path from 'node:path';
 import os from 'node:os';
@@ -10,10 +10,14 @@ import { AsyncResult } from '#/utils/AsyncResult';
 import { appConfig } from '@/config/configLoader';
 import { type ConfigType } from '@nestjs/config';
 import { DownloadState, DownloadStateDTO } from '#/dto/DownloadStateDTO';
-import { EmittingMapDataManager } from '@/caching/base/EmittingMapDataManager';
 import { SimpleEventBus } from '@/events/SimpleEventBus';
 import { plainToInstance } from 'class-transformer';
 import { isPathWithin } from '@/utils/PathUtils';
+import { IMapDataManager } from '@/caching/base/interfaces/IMapDataManager';
+import { SimpleMapDataManager } from '@/caching/base/SimpleMapDataManager';
+import { RecomputingMapMappingBehavior } from '@/caching/base/behaviors/viewMapping/RecomputingMapMappingBehavior';
+import { EmittingMapDataBehavior } from '@/caching/base/behaviors/emission/EmittingMapDataBehavior';
+import { KeyDataViewable } from '@/caching/base/interfaces/capabilities/KeyDataViewable';
 
 
 type ImportMatchError =
@@ -80,12 +84,14 @@ const expect = (
 };
 
 @Injectable()
-export class ReplayIOManagerV2 extends EmittingMapDataManager<string, DownloadState, DownloadStateDTO> implements OnModuleInit {
+export class ReplayIOManager implements KeyDataViewable<string, DownloadStateDTO>, OnModuleInit {
 
     private static NON_SETUP_STATUS: StorageStatusDTO = { isSetup: false, matchCount: 0, totalSizeBytes: 0 };
 
     protected readonly storageBasePath: string;
-    private storageStatus: StorageStatusDTO = ReplayIOManagerV2.NON_SETUP_STATUS;
+    protected readonly manager: IMapDataManager<string, DownloadState, DownloadStateDTO>;
+    protected readonly logger = new Logger(this.constructor.name);
+    private storageStatus: StorageStatusDTO = ReplayIOManager.NON_SETUP_STATUS;
     private demosDir: string;
 
     constructor(
@@ -94,7 +100,9 @@ export class ReplayIOManagerV2 extends EmittingMapDataManager<string, DownloadSt
         @Inject(appConfig.KEY)
         config: ConfigType<typeof appConfig>,
     ) {
-        super(eventBus);
+        const base = new SimpleMapDataManager<string, DownloadState>();
+        const map = new RecomputingMapMappingBehavior(base, ReplayIOManager.map);
+        this.manager = new EmittingMapDataBehavior(map, eventBus, this.constructor.name);
         const localAppData =
             process.env.LOCALAPPDATA ??
             path.join(os.homedir(), 'AppData', 'Local');
@@ -103,6 +111,14 @@ export class ReplayIOManagerV2 extends EmittingMapDataManager<string, DownloadSt
             config.filepaths['valorant-saved'].getResolvedPath(),
             'Demos',
         );
+    }
+
+    getKeyView(key: string): DownloadStateDTO | null {
+        return this.manager.getKeyView(key);
+    }
+
+    getView(): Record<string, DownloadStateDTO> | null {
+        return this.manager.getView();
     }
 
     private matchDirSafe(matchId: string): string {
@@ -126,17 +142,10 @@ export class ReplayIOManagerV2 extends EmittingMapDataManager<string, DownloadSt
         return path.join(this.matchDirSafe(matchId), 'metadata.json');
     }
 
-    protected getViewForValue(value: DownloadState | null): DownloadStateDTO | null {
-        if (value === null) {
-            return null;
-        }
+    protected static map(value: DownloadState): DownloadStateDTO {
         return {
             state: value,
         };
-    }
-
-    protected resetInternalState(): Promise<void> {
-        return Promise.resolve(undefined);
     }
 
     async onModuleInit() {
@@ -222,8 +231,8 @@ export class ReplayIOManagerV2 extends EmittingMapDataManager<string, DownloadSt
     async teardown(): Promise<void> {
         await fs.rm(this.storageBasePath, { recursive: true, force: true });
         this.logger.log('Storage removed');
-        this.setState(new Map());
-        this.storageStatus = ReplayIOManagerV2.NON_SETUP_STATUS;
+        this.manager.deleteState();
+        this.storageStatus = ReplayIOManager.NON_SETUP_STATUS;
     }
 
     async isSetup(): Promise<boolean> {
@@ -243,17 +252,17 @@ export class ReplayIOManagerV2 extends EmittingMapDataManager<string, DownloadSt
             }
             await fs.rm(this.matchDirSafe(matchId), { recursive: true, force: true });
             this.logger.log(`Deleted match ${matchId}`);
-            this.deleteKey(matchId);
+            this.manager.deleteKey(matchId);
         } catch (e) {
             this.logger.warn(`Failed to delete match ${matchId}`);
-            return AsyncResult.failure(new UnableToDeleteMatchError(matchId,e));
+            return AsyncResult.failure(new UnableToDeleteMatchError(matchId, e));
         }
         await this.updateStorageStatus();
         return AsyncResult.success(undefined);
     }
 
     public matchRegistered(matchId: string) {
-        return this.get(matchId) !== null;
+        return this.manager.getKeyView(matchId) !== null;
     }
 
     private async matchExistsIO(matchId: string): Promise<boolean> {
@@ -278,7 +287,7 @@ export class ReplayIOManagerV2 extends EmittingMapDataManager<string, DownloadSt
     }
 
     public async loadSavedMetadata(matchId: string): Promise<AsyncResult<ReplayMetadata, LoadSavedMetadataError>> {
-        const current = this.getEntryView(matchId)?.state ?? null;
+        const current = this.manager.getKeyView(matchId)?.state ?? null;
         if (current === null) {
             return AsyncResult.failure(new MatchNotFoundError(matchId));
         }
@@ -293,21 +302,21 @@ export class ReplayIOManagerV2 extends EmittingMapDataManager<string, DownloadSt
         const matchIds = await this.listStoredMatchIds();
         await Promise.allSettled(
             matchIds.map(async (matchId) => {
-                this.setKeyValue(matchId, DownloadState.DOWNLOADING);
+                this.manager.updateKeyValue(matchId, DownloadState.DOWNLOADING);
 
                 try {
                     const matchExists = await this.matchExistsIO(matchId);
-                    this.setKeyValue(matchId, matchExists ? DownloadState.DOWNLOADED : DownloadState.FAILED);
+                    this.manager.updateKeyValue(matchId, matchExists ? DownloadState.DOWNLOADED : DownloadState.FAILED);
                 } catch (err) {
                     this.logger.error(`Failed to load metadata for match ${matchId}`, err);
-                    this.setKeyValue(matchId, DownloadState.FAILED);
+                    this.manager.updateKeyValue(matchId, DownloadState.FAILED);
                 }
             }),
         );
     }
 
     async moveToValorantDemos(matchId: string): Promise<void> {
-        const current = this.getEntryView(matchId)?.state ?? null;
+        const current = this.manager.getKeyView(matchId)?.state ?? null;
         if (current === null) {
             throw new MatchNotFoundError(matchId);
         }
@@ -324,7 +333,7 @@ export class ReplayIOManagerV2 extends EmittingMapDataManager<string, DownloadSt
     }
 
     async triggerDownload(matchId: string, forceRetryWhenFailed = false): Promise<void> {
-        const current = this.getEntryView(matchId)?.state ?? null;
+        const current = this.manager.getKeyView(matchId)?.state ?? null;
         if (current !== null && current !== DownloadState.FAILED) {
             this.logger.log('Match already exists in memory or is being downloaded, skipping download');
             return;
@@ -333,14 +342,14 @@ export class ReplayIOManagerV2 extends EmittingMapDataManager<string, DownloadSt
             this.logger.log('Previous download attempt failed, skipping download');
             return;
         }
-        this.setKeyValue(matchId, DownloadState.DOWNLOADING);
+        this.manager.updateKeyValue(matchId, DownloadState.DOWNLOADING);
         try {
             const { metadata, replayBuffer, matchDetails } = await this.fetchManager.fetchCombinedReplayData(matchId);
             await this.doSaveReplay(matchId, replayBuffer, metadata);
-            this.setKeyValue(matchId, DownloadState.DOWNLOADED);
+            this.manager.updateKeyValue(matchId, DownloadState.DOWNLOADED);
         } catch (err) {
             this.logger.error(`Failed to download and save match ${matchId}`, err);
-            this.setKeyValue(matchId, DownloadState.FAILED);
+            this.manager.updateKeyValue(matchId, DownloadState.FAILED);
         }
         this.updateStorageStatus();
     }
@@ -418,7 +427,7 @@ export class ReplayIOManagerV2 extends EmittingMapDataManager<string, DownloadSt
 
         const matchId = metadata.matchInfo.matchId;
 
-        const current = this.getEntryView(matchId)?.state ?? null;
+        const current = this.manager.getKeyView(matchId)?.state ?? null;
         switch (current) {
             case DownloadState.DOWNLOADED:
                 if (!overrideIfExists) {
@@ -431,7 +440,7 @@ export class ReplayIOManagerV2 extends EmittingMapDataManager<string, DownloadSt
             default:
                 return AsyncResult.failure(new IllegalDownloadStateError(`Match ${matchId} is currently in state ${current}, cannot import`));
         }
-        this.setKeyValue(matchId, DownloadState.DOWNLOADING);
+        this.manager.updateKeyValue(matchId, DownloadState.DOWNLOADING);
 
         try {
             const targetDir = this.matchDirSafe(matchId);
@@ -442,18 +451,18 @@ export class ReplayIOManagerV2 extends EmittingMapDataManager<string, DownloadSt
                 const entryPath = path.normalize(path.resolve(path.join(resolvedTarget, entry.entryName)));
                 if (!isPathWithin(targetDir, entryPath)) {
                     return AsyncResult.failure(
-                        new InvalidReplayArchiveError(`Archive entry escapes target directory: ${entry.entryName}`)
+                        new InvalidReplayArchiveError(`Archive entry escapes target directory: ${entry.entryName}`),
                     );
                 }
             }
 
             zip.extractAllTo(targetDir, true);
             this.logger.log(`Imported match ${matchId} from archive`);
-            this.setKeyValue(matchId, DownloadState.DOWNLOADED);
+            this.manager.updateKeyValue(matchId, DownloadState.DOWNLOADED);
             return AsyncResult.success(undefined);
         } catch (err) {
             this.logger.error(`Failed to import match ${matchId} from archive`, err);
-            this.setKeyValue(matchId, DownloadState.FAILED);
+            this.manager.updateKeyValue(matchId, DownloadState.FAILED);
             throw new Error('Failed to extract replay archive, see server logs for details');
         }
     }
@@ -485,5 +494,9 @@ export class ReplayIOManagerV2 extends EmittingMapDataManager<string, DownloadSt
             data,
         );
         this.logger.log(`Restored original replay file for ${matchId}`);
+    }
+
+    getStoreageStatus(): StorageStatusDTO {
+        return this.storageStatus;
     }
 }

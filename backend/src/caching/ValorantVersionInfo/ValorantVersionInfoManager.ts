@@ -1,23 +1,28 @@
-import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { EmittingObjectDataManager } from '@/caching/base/EmittingObjectDataManager';
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { SimpleEventBus } from '@/events/SimpleEventBus';
 import fs from 'node:fs';
-import path from 'node:path';
 import * as readline from 'node:readline';
 import { ProductSessionManager } from '@/caching/ProductSessionManager/ProductSessionManager';
 import { type ConfigType } from '@nestjs/config';
 import { appConfig } from '@/config/configLoader';
 import { MinimalVersionInfoDTO } from '@/caching/ValorantVersionInfo/MinimalVersionInfoDTO';
+import { IObjectDataManager } from '@/caching/base/interfaces/IObjectDataManager';
+import { SimpleObjectDataManager } from '@/caching/base/SimpleObjectDataManager';
+import { EmittingObjectDataBehavior } from '@/caching/base/behaviors/emission/EmittingObjectDataBehavior';
+import path from 'path';
 
 @Injectable()
-export class ValorantVersionInfoManager extends EmittingObjectDataManager<MinimalVersionInfoDTO, MinimalVersionInfoDTO> implements OnModuleInit, OnModuleDestroy {
+export class ValorantVersionInfoManager implements IObjectDataManager<MinimalVersionInfoDTO, MinimalVersionInfoDTO>, OnModuleInit, OnModuleDestroy {
+    protected readonly manager: IObjectDataManager<MinimalVersionInfoDTO, MinimalVersionInfoDTO>;
+    protected readonly logger = new Logger(this.constructor.name);
 
     constructor(
         @Inject(appConfig.KEY)
         protected readonly config: ConfigType<typeof appConfig>,
         protected readonly eventBus: SimpleEventBus,
     ) {
-        super(eventBus);
+        const base = new SimpleObjectDataManager<MinimalVersionInfoDTO>();
+        this.manager = new EmittingObjectDataBehavior(base, eventBus, this.constructor.name);
         this.regex = new RegExp(this.config.configurations['valorant-version-read'].regex);
     }
 
@@ -30,7 +35,7 @@ export class ValorantVersionInfoManager extends EmittingObjectDataManager<Minima
     private async loadAndSetState(retryCount = 0): Promise<void> {
         const optOverride = this.config.overrides['valorant-version-read'].version;
         if (optOverride) {
-            this.setState({
+            this.manager.updateValue({
                 version: optOverride,
             });
             return;
@@ -48,7 +53,7 @@ export class ValorantVersionInfoManager extends EmittingObjectDataManager<Minima
                 if (match && match[1]) {
                     const version = match[1];
                     this.logger.log('Extracted version:', version);
-                    this.setState({
+                    this.manager.updateValue({
                         version: version,
                     });
                     return;
@@ -84,15 +89,6 @@ export class ValorantVersionInfoManager extends EmittingObjectDataManager<Minima
     }
 
 
-    protected getViewFor(state: MinimalVersionInfoDTO | null): MinimalVersionInfoDTO | null {
-        if (!state) return null;
-        return state;
-    }
-
-    protected async resetInternalState(): Promise<void> {
-        this.setState(null);
-    }
-
     onModuleDestroy() {
         this.unsubscribe?.();
         this.unsubscribe = null;
@@ -100,5 +96,17 @@ export class ValorantVersionInfoManager extends EmittingObjectDataManager<Minima
             clearTimeout(this.timeoutHandle);
         }
         this.lastSeesSessionId = null;
+    }
+
+    deleteState(): void {
+        this.manager.deleteState();
+    }
+
+    getView(): MinimalVersionInfoDTO | null {
+        return this.manager.getView();
+    }
+
+    updateValue(value: MinimalVersionInfoDTO): void {
+        this.manager.updateValue(value);
     }
 }

@@ -4,14 +4,14 @@ import type { RiotClientService } from '@/riotclient/RiotClientService';
 import { ValorantGameSessionManager } from '@/caching/ValorantGameSessionModule/ValorantGameSessionManager';
 import { RCUMessageType } from '@/riotclient/messaging/RCUMessage';
 import { MatchStatus } from '@/caching/ValorantGameSessionModule/MatchStatus';
-import { RCUMapDataAdapter } from '@/riotclient/adapters/RCUMapDataAdapter';
 import { RIOT_CLIENT_SERVICE, RIOT_CLIENT_STATE_DISPATCHING_SERVICE } from '@/riotclient/RiotClientTokens';
 import type { RiotClientStateDispatcher } from '@/riotclient/RiotClientStateDispatcher';
 import { ForwardedMessage, TrieRCUMessageDispatcher } from '@/riotclient/messaging/trie/TrieRCUMessageDispatcher';
 import { AnyPathPattern, parsePatternString } from '@/riotclient/messaging/path/PatternParser';
+import { RCUDataAdapter } from '@/caching/base/adapters/RCUDataAdapter';
 
 @Injectable()
-export class ValorantGameInProgressRCUAdapter extends RCUMapDataAdapter<ValorantGameSessionManager> {
+export class ValorantGameInProgressRCUAdapter extends RCUDataAdapter<ValorantGameSessionManager> {
     private static PATH_PATTERNS = parsePatternString('/riot-messaging-service/v1/messages/ares-core-game/core-game/v1/matches/{matchId}');
 
     constructor(
@@ -40,7 +40,7 @@ export class ValorantGameInProgressRCUAdapter extends RCUMapDataAdapter<Valorant
             case RCUMessageType.UPDATE:
             case RCUMessageType.CREATE:
                 this.logger.log('Received match in progress', data);
-                this.setKeyValue(matchId, MatchStatus.IN_PROGRESS);
+                this.manager.updateKeyValue(matchId, MatchStatus.IN_PROGRESS);
                 break;
             case RCUMessageType.DELETE:
             default:

@@ -1,10 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import { ProductSessionSession } from '@/../gen';
-import { ProductSessionDTO } from '@/caching/ProductSessionManager/ProductSessionDTO';
-import { EmittingMapDataManager } from '@/caching/base/EmittingMapDataManager';
+import { SimpleMapDataManager } from '@/caching/base/SimpleMapDataManager';
 import { SimpleEventBus } from '@/events/SimpleEventBus';
+import { IMapDataManager } from '@/caching/base/interfaces/IMapDataManager';
+import { ProductSessionSession } from '../../../gen';
+import { ProductSessionDTO } from '@/caching/ProductSessionManager/ProductSessionDTO';
+import { RecomputingMapMappingBehavior } from '@/caching/base/behaviors/viewMapping/RecomputingMapMappingBehavior';
+import { EmittingMapDataBehavior } from '@/caching/base/behaviors/emission/EmittingMapDataBehavior';
 import { EventType } from '@/events/EventTypes';
 import { KeyUpdateActionType, KeyValueUpdatedEvent, StateUpdatedEvent } from '@/events/BasicEvent';
+import { Injectable } from '@nestjs/common';
 
 export type SessionId = string;
 
@@ -15,11 +18,67 @@ export type SessionLaunchSubscriptionParams = {
 }
 
 @Injectable()
-export class ProductSessionManager extends EmittingMapDataManager<
-    SessionId,
-    ProductSessionSession,
-    ProductSessionDTO
-> {
+export class ProductSessionManager implements IMapDataManager<SessionId, ProductSessionSession, ProductSessionDTO> {
+    private readonly manager: IMapDataManager<SessionId, ProductSessionSession, ProductSessionDTO>;
+
+    constructor(
+        readonly eventBus: SimpleEventBus,
+    ) {
+        const store = new SimpleMapDataManager<SessionId, ProductSessionSession>();
+        const mapped = new RecomputingMapMappingBehavior(store, ProductSessionManager.mapSession);
+        this.manager = new EmittingMapDataBehavior(mapped, eventBus, this.constructor.name);
+    }
+
+    private static mapSession(session: ProductSessionSession): ProductSessionDTO {
+        const launchConfiguration = session.launchConfiguration!;
+
+        return {
+            productId: session.productId!,
+            isInternal: session.isInternal!,
+            launchConfiguration: {
+                arguments: [...launchConfiguration.arguments!],
+                executable: launchConfiguration.executable!,
+                workingDirectory: launchConfiguration?.workingDirectory!,
+                locale: launchConfiguration.locale!,
+            },
+        };
+    }
+
+    public getSessionByProductId(productId: string): ProductSessionDTO | null {
+        const sessions = this.manager.getView();
+        if (!sessions) return null;
+
+        const eligibleSession = Object.values(sessions).find(
+            (s) => s?.productId === productId,
+        ) as ProductSessionDTO | undefined;
+
+        return eligibleSession ?? null;
+    }
+
+    getKeyView(key: SessionId): ProductSessionDTO | null {
+        return this.manager.getKeyView(key);
+    }
+
+    getView(): Record<SessionId, ProductSessionDTO> | null {
+        return this.manager.getView();
+    }
+
+    updateKeyValue(key: SessionId, value: ProductSessionSession): void {
+        this.manager.updateKeyValue(key, value);
+    }
+
+    updateKeyValueBatch(entries: Record<SessionId, ProductSessionSession>): void {
+        this.manager.updateKeyValueBatch(entries);
+    }
+
+    deleteState(): void {
+        this.manager.deleteState();
+    }
+
+    deleteKey(key: SessionId): void {
+        this.manager.deleteKey(key);
+    }
+
     public static readonly onNewSessionLaunch = ({
                                                      eventBus,
                                                      productId,
@@ -54,46 +113,4 @@ export class ProductSessionManager extends EmittingMapDataManager<
             }
         });
     };
-
-    constructor(
-        protected readonly eventBus: SimpleEventBus,
-    ) {
-        super(eventBus);
-    }
-
-    protected getViewForValue(
-        value: ProductSessionSession | null,
-    ): ProductSessionDTO | null {
-        if (value === null) {
-            return null;
-        }
-
-        const launchConfiguration = value.launchConfiguration!;
-
-        return {
-            productId: value.productId!,
-            isInternal: value.isInternal!,
-            launchConfiguration: {
-                arguments: [...launchConfiguration.arguments!],
-                executable: launchConfiguration.executable!,
-                workingDirectory: launchConfiguration?.workingDirectory!,
-                locale: launchConfiguration.locale!,
-            },
-        };
-    }
-
-    protected async resetInternalState(): Promise<void> {
-        this.setState(new Map());
-    }
-
-    public getSessionByProductId(productId: string): ProductSessionDTO | null {
-        const sessions = this.getView();
-        if (!sessions) return null;
-
-        const eligibleSession = Array.from(Object.values(sessions)).find(
-            (s) => s?.productId === productId,
-        ) as ProductSessionDTO | undefined;
-
-        return eligibleSession ?? null;
-    }
 }

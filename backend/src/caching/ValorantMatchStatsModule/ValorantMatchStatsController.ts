@@ -64,7 +64,7 @@ export class ValorantMatchStatsController {
     })
     public async getById(@Param('id') id: UUID) {
         if (!id) return new BadRequestException();
-        const viewEntry = this.valorantMatchEndedManager.getEntryView(id);
+        const viewEntry = this.valorantMatchEndedManager.getKeyView(id);
 
         if (viewEntry === null) {
             throw new NotFoundException('No data for the given match ID');

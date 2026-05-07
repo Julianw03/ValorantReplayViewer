@@ -53,7 +53,7 @@ export class ValorantGameSessionController {
         description: 'Returned when the specified match ID is not found.',
     })
     public async getMatchStateById(matchId: SimpleUUID) {
-        const entry = this.valorantGameSessionManager.getEntryView(matchId);
+        const entry = this.valorantGameSessionManager.getKeyView(matchId);
         if (entry === null) {
             throw new NotFoundException();
         }

@@ -14,7 +14,7 @@ export class MapAssetResolverController {
 
     @Get('/:mapPath')
     public async getMapAsset(@Param('mapPath') mapPath: string) {
-        const mapAsset = this.assetResolver.getEntryView(mapPath);
+        const mapAsset = this.assetResolver.getKeyView(mapPath);
         if (!mapAsset) {
             throw new NotFoundException(`Map asset not found for path: ${mapPath}`);
         }

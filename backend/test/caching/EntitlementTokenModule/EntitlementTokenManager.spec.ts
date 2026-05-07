@@ -1,7 +1,6 @@
 import { EntitlementTokenManager } from '@/caching/EntitlementTokenModule/EntitlementTokenManager';
 import { EntitlementsToken } from '../../../gen';
-import { _INTERNALS_WRITE_STATE } from '@/caching/base/GenericDataManager';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('EntitlementTokenManager', () => {
     const mockEntitlementToken: EntitlementsToken = {
@@ -23,7 +22,7 @@ describe('EntitlementTokenManager', () => {
     });
 
     it('maps EntitlementsToken to the expected view shape', () => {
-        manager[_INTERNALS_WRITE_STATE](mockEntitlementToken);
+        manager.updateValue(mockEntitlementToken);
         const view = manager.getView()!;
         expect(view.accessToken).toBe(mockEntitlementToken.accessToken);
         expect(view.issuer).toBe(mockEntitlementToken.issuer);
@@ -32,8 +31,8 @@ describe('EntitlementTokenManager', () => {
     });
 
     it('returns null view after state is cleared', () => {
-        manager[_INTERNALS_WRITE_STATE](mockEntitlementToken);
-        manager[_INTERNALS_WRITE_STATE](null);
+        manager.updateValue(mockEntitlementToken);
+        manager.deleteState();
         expect(manager.getView()).toBeNull();
     });
 });

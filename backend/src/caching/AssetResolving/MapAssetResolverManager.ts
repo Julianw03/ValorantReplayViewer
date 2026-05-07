@@ -1,8 +1,11 @@
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { MapDataManager } from '@/caching/base/MapDataManager';
 import { MapEntry, ValorantAssetAPI } from '@/api/NotOfficer/ValorantAssetAPI';
 import { appConfig } from '@/config/configLoader';
 import type { ConfigType } from '@nestjs/config';
+import { IMapDataManager } from '@/caching/base/interfaces/IMapDataManager';
+import { SimpleMapDataManager } from '@/caching/base/SimpleMapDataManager';
+import { RecomputingMapMappingBehavior } from '@/caching/base/behaviors/viewMapping/RecomputingMapMappingBehavior';
+import { KeyDataViewable } from '@/caching/base/interfaces/capabilities/KeyDataViewable';
 
 
 export type MapId = string;
@@ -10,15 +13,18 @@ export type MapId = string;
 export type MapAsset = Omit<MapEntry, 'uuid'>;
 
 @Injectable()
-export class MapAssetResolverManager extends MapDataManager<MapId, MapEntry, MapAsset> implements OnModuleInit {
+export class MapAssetResolverManager implements KeyDataViewable<MapId, MapAsset>, OnModuleInit {
+    protected readonly manager: IMapDataManager<MapId, MapEntry, MapAsset>;
     protected readonly logger = new Logger(this.constructor.name);
 
     constructor(
         protected readonly valorantAssetAPI: ValorantAssetAPI,
         @Inject(appConfig.KEY)
-        protected readonly config: ConfigType<typeof appConfig>
+        protected readonly config: ConfigType<typeof appConfig>,
     ) {
-        super();
+        const base = new SimpleMapDataManager();
+        this.manager = new RecomputingMapMappingBehavior(base, MapAssetResolverManager.map);
+
     }
 
     private proxyAssetUrl(externalUrl: string): string {
@@ -38,25 +44,29 @@ export class MapAssetResolverManager extends MapDataManager<MapId, MapEntry, Map
     onModuleInit() {
         this.valorantAssetAPI.getMapList()
             .then(data => {
-                const map = new Map<string, MapEntry>();
+                const map = {};
                 for (const entry of data) {
-                    map.set(entry.mapUrl, this.overrideProxyResourcesFor(entry));
+                    map[entry.mapUrl] = this.overrideProxyResourcesFor(entry);
                 }
                 this.logger.log('Fetched map list and updated state.');
-                this.setState(map);
+                this.manager.updateKeyValueBatch(map);
             })
             .catch(err => {
                 this.logger.error('Failed to fetch map list on initialization', err);
             });
     }
 
-    protected getViewForValue(
-        state: MapEntry | null,
-    ): MapAsset | null {
-        return state ?? null;
+    protected static map(
+        state: MapEntry,
+    ): MapAsset {
+        return state;
     }
 
-    protected async resetInternalState(): Promise<void> {
-        this.setState(new Map);
+    getKeyView(key: MapId): MapAsset | null {
+        return this.manager.getKeyView(key);
+    }
+
+    getView(): Record<MapId, MapAsset> | null {
+        return this.manager.getView();
     }
 }

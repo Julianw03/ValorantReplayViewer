@@ -23,7 +23,7 @@ export class ProductSessionController {
     public async getProductSessionById(
         @Param('productSessionId') productSessionId: string,
     ) {
-        const optSession = this.productSessionManager.getEntryView(productSessionId);
+        const optSession = this.productSessionManager.getKeyView(productSessionId);
         if (!optSession) {
             throw new NotFoundException();
         }

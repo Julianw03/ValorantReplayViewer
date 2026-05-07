@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { EntitlementTokenManager } from '@/caching/EntitlementTokenModule/EntitlementTokenManager';
 import { ProductSessionManager } from '@/caching/ProductSessionManager/ProductSessionManager';
 import { ValorantMatchStatsManager } from '@/caching/ValorantMatchStatsModule/ValorantMatchStatsManager';
@@ -6,12 +6,13 @@ import { RiotMatchApiResponse } from '@/caching/ValorantMatchStatsModule/RiotMat
 import { ValorantVersionInfoManager } from '@/caching/ValorantVersionInfo/ValorantVersionInfoManager';
 import { type ConfigType } from '@nestjs/config';
 import { appConfig } from '@/config/configLoader';
-import { MapDataManager } from '@/caching/base/MapDataManager';
 import { ProductSessionDTO } from '@/caching/ProductSessionManager/ProductSessionDTO';
 import { SimpleEventBus } from '@/events/SimpleEventBus';
 import { RegionToDefaultShardMap } from '@/config/ConfigV1DTO';
 import { combineLatest, fromEventPattern, Subscription } from 'rxjs';
 import { MinimalVersionInfoDTO } from '@/caching/ValorantVersionInfo/MinimalVersionInfoDTO';
+import { IMapDataManager } from '@/caching/base/interfaces/IMapDataManager';
+import { SimpleMapDataManager } from '@/caching/base/SimpleMapDataManager';
 
 export enum ValorantServiceUrl {
     ACCOUNT_XP = 'ACCOUNT_XP',
@@ -116,7 +117,9 @@ export interface ClientPlatformInfo {
 }
 
 @Injectable()
-export class RiotValorantAPIManager extends MapDataManager<ValorantServiceUrl, string, string> implements OnModuleInit, OnModuleDestroy {
+export class RiotValorantAPIManager implements OnModuleInit, OnModuleDestroy {
+    private readonly manager: IMapDataManager<ValorantServiceUrl, string, string>;
+    protected readonly logger = new Logger(this.constructor.name);
     private subscription: Subscription | null = null;
 
     private readonly sessionLaunch$ = fromEventPattern<[string, ProductSessionDTO]>(
@@ -141,7 +144,7 @@ export class RiotValorantAPIManager extends MapDataManager<ValorantServiceUrl, s
         private readonly versionInfoManager: ValorantVersionInfoManager,
         private readonly eventBus: SimpleEventBus,
     ) {
-        super();
+        this.manager = new SimpleMapDataManager();
     }
 
     onModuleInit() {
@@ -192,7 +195,7 @@ export class RiotValorantAPIManager extends MapDataManager<ValorantServiceUrl, s
                             this.logger.warn(`Received unknown service URL key: ${normalizedKey}`);
                             return;
                         }
-                        this.setKeyValue(normalizedKey as ValorantServiceUrl, value);
+                        this.manager.updateKeyValue(normalizedKey as ValorantServiceUrl, value);
                     }
                 });
             })
@@ -318,7 +321,7 @@ export class RiotValorantAPIManager extends MapDataManager<ValorantServiceUrl, s
     }
 
     public createUrl = (endpoint: ValorantServiceUrl, path: string) => {
-        const base = this.getEntryView(endpoint);
+        const base = this.manager.getKeyView(endpoint);
         if (!base) {
             throw new Error(`No base URL found for ${endpoint}`);
         }
