@@ -1,13 +1,4 @@
-import {
-    CanActivate,
-    ExecutionContext,
-    Inject,
-    Injectable,
-    ServiceUnavailableException,
-    SetMetadata,
-} from '@nestjs/common';
-import type { RiotClientService } from '@/riotclient/RiotClientService';
-import { RIOT_CLIENT_SERVICE } from '@/riotclient/RiotClientTokens';
+import { CanActivate, ExecutionContext, Injectable, ServiceUnavailableException, SetMetadata } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { Reflector } from '@nestjs/core';
 import { ProductSessionManager } from '@/caching/ProductSessionManager/ProductSessionManager';
@@ -24,8 +15,9 @@ export const RequiredProduct = (productId: string) =>
 export class ProductSessionGuard implements CanActivate {
     constructor(
         protected readonly productSessionManager: ProductSessionManager,
-        private readonly reflector: Reflector
-    ) {}
+        private readonly reflector: Reflector,
+    ) {
+    }
 
     canActivate(
         context: ExecutionContext,

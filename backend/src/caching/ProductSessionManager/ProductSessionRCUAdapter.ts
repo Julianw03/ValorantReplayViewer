@@ -1,5 +1,4 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { RCUMapDataAdapter } from '@/riotclient/adapters/RCUMapDataAdapter';
 import { ProductSessionManager } from '@/caching/ProductSessionManager/ProductSessionManager';
 import { RCUMessageType } from '@/riotclient/messaging/RCUMessage';
 import { PluginProductSessionApi, ProductSessionSession } from '../../../gen';
@@ -8,9 +7,10 @@ import { RIOT_CLIENT_SERVICE, RIOT_CLIENT_STATE_DISPATCHING_SERVICE } from '@/ri
 import type { RiotClientStateDispatcher } from '@/riotclient/RiotClientStateDispatcher';
 import { TrieRCUMessageDispatcher } from '@/riotclient/messaging/trie/TrieRCUMessageDispatcher';
 import { AnyPathPattern, parsePatternString } from '@/riotclient/messaging/path/PatternParser';
+import { RCUDataAdapter } from '@/caching/base/adapters/RCUDataAdapter';
 
 @Injectable()
-export class ProductSessionRCUAdapter extends RCUMapDataAdapter<ProductSessionManager> {
+export class ProductSessionRCUAdapter extends RCUDataAdapter<ProductSessionManager> {
 
     private static PATH_PATTERNS = parsePatternString('/product-session/v1/sessions/{sessionId}');
 
@@ -37,13 +37,13 @@ export class ProductSessionRCUAdapter extends RCUMapDataAdapter<ProductSessionMa
                 this.logger.log(match);
                 const typedData = data as unknown as ProductSessionSession;
                 const sessionId = match['sessionId'];
-                if (this.getEntry(sessionId) === null) {
+                if (this.manager.getKeyView(sessionId) === null) {
                     this.logger.log(
                         `Registering new product session with ID: ${sessionId}`,
                         typedData,
                     );
                 }
-                this.setKeyValue(sessionId, typedData);
+                this.manager.updateKeyValue(sessionId, typedData);
                 break;
             }
             case RCUMessageType.DELETE: {
@@ -51,7 +51,7 @@ export class ProductSessionRCUAdapter extends RCUMapDataAdapter<ProductSessionMa
                 this.logger.log(
                     `Unregistering product session with ID: ${sessionId}`,
                 );
-                this.deleteKey(sessionId);
+                this.manager.deleteKey(sessionId);
                 break;
             }
             default:
@@ -70,15 +70,7 @@ export class ProductSessionRCUAdapter extends RCUMapDataAdapter<ProductSessionMa
             return;
         }
 
-        const data = resp.data;
-        const currentState = this.getState();
-        const newState = new Map([
-            ...currentState,
-            ...Object.entries(data),
-        ]);
-        this.logger.log(newState);
-
-        this.setState(newState);
+        this.manager.updateKeyValueBatch(resp.data);
     }
 
     protected getPathParts(): AnyPathPattern[] {

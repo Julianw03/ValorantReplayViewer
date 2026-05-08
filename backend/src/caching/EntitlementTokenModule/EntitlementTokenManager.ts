@@ -1,19 +1,28 @@
-import { ObjectDataManager } from '../base/ObjectDataManager';
-import { EntitlementsToken, PluginEntitlementsApi } from '../../../gen';
-import { RCUMessageType } from '@/riotclient/messaging/RCUMessage';
-import { HttpStatus, Injectable } from '@nestjs/common';
-import type { RiotClientService } from '@/riotclient/RiotClientService';
+import { EntitlementsToken } from '../../../gen';
+import { Injectable } from '@nestjs/common';
 import { EntitlementTokenDTO } from '@/caching/EntitlementTokenModule/EntitlementTokenDTO';
+import { IObjectDataManager } from '@/caching/base/interfaces/IObjectDataManager';
+import { SimpleObjectDataManager } from '@/caching/base/SimpleObjectDataManager';
+import {
+    RecomputingObjectMappingBehavior,
+} from '@/caching/base/behaviors/viewMapping/RecomputingObjectMappingBehavior';
 
 @Injectable()
-export class EntitlementTokenManager extends ObjectDataManager<
+export class EntitlementTokenManager implements IObjectDataManager<
     EntitlementsToken,
     EntitlementTokenDTO
 > {
-    protected getViewFor(
-        state: EntitlementsToken | null,
-    ): EntitlementTokenDTO | null {
-        if (state === null) return null;
+    private readonly manager: IObjectDataManager<
+        EntitlementsToken,
+        EntitlementTokenDTO
+    >;
+
+    constructor() {
+        const store = new SimpleObjectDataManager<EntitlementsToken>();
+        this.manager = new RecomputingObjectMappingBehavior(store, EntitlementTokenManager.map);
+    }
+
+    private static map(state: EntitlementsToken): EntitlementTokenDTO {
         return {
             accessToken: state.accessToken!,
             entitlements: [...state.entitlements!],
@@ -23,11 +32,15 @@ export class EntitlementTokenManager extends ObjectDataManager<
         };
     }
 
-    constructor() {
-        super();
+    deleteState(): void {
+        this.manager.deleteState();
     }
 
-    protected async resetInternalState(): Promise<void> {
-        this.setState(null);
+    getView(): EntitlementTokenDTO | null {
+        return this.manager.getView();
+    }
+
+    updateValue(value: EntitlementsToken): void {
+        this.manager.updateValue(value);
     }
 }

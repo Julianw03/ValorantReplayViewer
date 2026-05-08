@@ -1,11 +1,16 @@
-## Changelog Version 0.4.0
-- You can now see the download state of your matches in the recent tab already.
-- Bunch of stuff changed in the backend to fix inconsistencies and make working with the replay manager easier.
-- The download state of your recent matches is now also persistent and doesn't require periodic refreshing of the recent matches tab.
+## Changelog Version 0.5.0
+### Overview
+This update primarily focuses on backend improvements with minimal expected impact on user-facing behavior.
+
+- A lot of the changes have been to the backend and should, ideally, not have any effect on your experience. 
+Changes include:
+  - Valorant API Url's should now be configured automatically based on your regions' config based on an intial config fetch.
+  - Messages (from Riot Client to the internal Managers) should now be passed faster (as we use a prefix tree instead of a regex per listener).
+  - Major rewrite of the Object and Map Manager classes to allow for composition instead of clunky inheritance.
+  - Finally, we some basic unit tests :)
 
 ### Bug Fixes
-- Fixed a bug where username and tagline were empty as of the new patch
-- Fixed potential file traversal issues when unpacking replays.
+- _None_
 
 ### Known Issues
 - When running valorant for the first time after a version update the replay manager will wrongly assume that the old version is still active.
@@ -13,9 +18,9 @@ This can be fixed by:
     - Starting Valorant and loading into the main menu
     - Exiting Valorant
     - Restarting Valorant as this will overwrite the stale version information from the file.
-- I have no way of verifying the SGP hosts for regions other than ``EU``. Should something NOT work for you and you are from outside the `EU` Region please do the following:
-    - Start Valorant
-    - Go to your match history and (re-) download a replay
-    - Exit Valorant
-    - ``%LOCALAPPDATA%/VALORANT/Saved/Logs`` should now contain a file called ``ShooterGame.log``. Please send me this file and the region you are playing in so I can add support for your region as well.
-    **DO NOT UPLOAD THIS FILE TO GITHUB ISSUES. IT MAY CONTAIN SENSITIVE INFORMATION**. Instead, send it to me via discord: ``iambadatplaying``.
+
+- The Replay injection will fail if within your last 10 matches you have not played any game that has a replay available.
+This can be fixed by:
+    - Starting Valorant and loading into the main menu
+    - Playing a game that has a replay available (e.g. Competitive, Unrated, Swiftplay)
+    - Reloading your recent matches

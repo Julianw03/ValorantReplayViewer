@@ -1,11 +1,15 @@
-import { ConflictException, Injectable, NotFoundException, OnModuleDestroy } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException, OnModuleDestroy } from '@nestjs/common';
 import { SimpleEventBus } from '@/events/SimpleEventBus';
 import { EventType } from '@/events/EventTypes';
 import { StateUpdatedEvent } from '@/events/BasicEvent';
 import { ValorantGameLoopManager } from '@/caching/ValorantGameLoop/ValorantGameLoopManager';
-import { RiotValorantAPI } from '@/api/riot/RiotValorantAPI';
-import { EmittingObjectDataManager } from '@/caching/base/EmittingObjectDataManager';
-import { ReplayIOManagerV2 } from '@/plugins/replay/storage/ReplayIOManagerV2';
+import { RiotValorantAPIManager } from '@/api/riot/RiotValorantAPIManager';
+import { ReplayIOManager } from '@/plugins/replay/storage/ReplayIOManager';
+import { IObjectDataManager } from '@/caching/base/interfaces/IObjectDataManager';
+import { SimpleObjectDataManager } from '@/caching/base/SimpleObjectDataManager';
+import { EmittingObjectDataBehavior } from '@/caching/base/behaviors/emission/EmittingObjectDataBehavior';
+import { DataViewable } from '@/caching/base/interfaces/capabilities/DataViewable';
+import e from 'express';
 
 export enum InjectState {
     IDLE = 'IDLE',
@@ -26,18 +30,21 @@ export interface InjectStatus {
 const VALID_QUEUE_IDS = ['competitive', 'unrated', 'spikerush', 'swiftplay'];
 
 @Injectable()
-export class ReplayInjectManager extends EmittingObjectDataManager<InjectStatus, InjectStatus> implements OnModuleDestroy {
+export class ReplayInjectManager implements DataViewable<InjectStatus>, OnModuleDestroy {
+    private readonly manager: IObjectDataManager<InjectStatus, InjectStatus>;
+    protected readonly logger = new Logger(this.constructor.name);
     private targetMatchId: string | null = null;
     private placeholderMatchId: string | null = null;
     private unsubscribeFromSession: (() => void) | null = null;
 
     constructor(
-        private readonly apiClient: RiotValorantAPI,
-        private readonly ioManager: ReplayIOManagerV2,
+        private readonly apiClient: RiotValorantAPIManager,
+        private readonly ioManager: ReplayIOManager,
         protected readonly eventBus: SimpleEventBus,
     ) {
-        super(eventBus);
-        this.setState({
+        const base = new SimpleObjectDataManager<InjectStatus>();
+        this.manager = new EmittingObjectDataBehavior(base, eventBus, this.constructor.name);
+        this.manager.updateValue({
             state: InjectState.IDLE,
             targetMatchId: null,
             placeholderMatchId: null,
@@ -45,7 +52,7 @@ export class ReplayInjectManager extends EmittingObjectDataManager<InjectStatus,
     }
 
     async startInject(matchId: string): Promise<void> {
-        if (this.getState()?.state !== InjectState.IDLE) {
+        if (this.manager.getView()?.state !== InjectState.IDLE) {
             throw new ConflictException('An inject process is already running');
         }
         if (!this.ioManager.matchRegistered(matchId)) {
@@ -74,7 +81,7 @@ export class ReplayInjectManager extends EmittingObjectDataManager<InjectStatus,
             }
 
             this.placeholderMatchId = validPlaceholder.MatchID;
-            this.setState({
+            this.manager.updateValue({
                 state: InjectState.DOWNLOADING_PLACEHOLDER,
                 targetMatchId: this.targetMatchId,
                 placeholderMatchId: this.placeholderMatchId,
@@ -93,7 +100,7 @@ export class ReplayInjectManager extends EmittingObjectDataManager<InjectStatus,
             await this.ioManager.triggerDownload(this.placeholderMatchId);
             await this.ioManager.moveToValorantDemos(this.placeholderMatchId);
 
-            this.setState({
+            this.manager.updateValue({
                 state: InjectState.AWAITING_REPLAY_START,
                 targetMatchId: this.targetMatchId,
                 placeholderMatchId: this.placeholderMatchId,
@@ -135,7 +142,7 @@ export class ReplayInjectManager extends EmittingObjectDataManager<InjectStatus,
     }
 
     handleFail(): void {
-        this.setState({
+        this.manager.updateValue({
             state: InjectState.FAILED,
             targetMatchId: this.targetMatchId,
             placeholderMatchId: this.placeholderMatchId,
@@ -156,7 +163,7 @@ export class ReplayInjectManager extends EmittingObjectDataManager<InjectStatus,
             this.targetMatchId,
             this.placeholderMatchId,
         );
-        this.setState({
+        this.manager.updateValue({
             state: InjectState.INJECTED,
             targetMatchId: this.targetMatchId,
             placeholderMatchId: this.placeholderMatchId,
@@ -168,7 +175,7 @@ export class ReplayInjectManager extends EmittingObjectDataManager<InjectStatus,
                     if (event.payload.value === 'MENUS') {
                         this.unsubscribeFromSession?.();
                         this.unsubscribeFromSession = null;
-                        this.setState({
+                        this.manager.updateValue({
                             state: InjectState.RESTORING_ORIGINAL_REPLAY,
                             targetMatchId: this.targetMatchId,
                             placeholderMatchId: this.placeholderMatchId,
@@ -202,10 +209,14 @@ export class ReplayInjectManager extends EmittingObjectDataManager<InjectStatus,
     protected async resetInternalState(): Promise<void> {
         this.targetMatchId = null;
         this.placeholderMatchId = null;
-        this.setState({
+        this.manager.updateValue({
             state: InjectState.IDLE,
             targetMatchId: null,
             placeholderMatchId: null,
         });
+    }
+
+    getView(): InjectStatus | null {
+        return this.manager.getView();
     }
 }

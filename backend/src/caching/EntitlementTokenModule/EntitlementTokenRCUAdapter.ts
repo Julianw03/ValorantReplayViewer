@@ -1,5 +1,4 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { RCUDataAdapter } from '@/riotclient/adapters/RCUDataAdapter';
 import { EntitlementTokenManager } from '@/caching/EntitlementTokenModule/EntitlementTokenManager';
 import { RCUMessageType } from '@/riotclient/messaging/RCUMessage';
 import { EntitlementsToken, PluginEntitlementsApi } from '../../../gen';
@@ -8,6 +7,7 @@ import { RIOT_CLIENT_SERVICE, RIOT_CLIENT_STATE_DISPATCHING_SERVICE } from '@/ri
 import { AnyPathPattern, parsePatternString } from '@/riotclient/messaging/path/PatternParser';
 import type { RiotClientStateDispatcher } from '@/riotclient/RiotClientStateDispatcher';
 import { TrieRCUMessageDispatcher } from '@/riotclient/messaging/trie/TrieRCUMessageDispatcher';
+import { RCUDataAdapter } from '@/caching/base/adapters/RCUDataAdapter';
 
 @Injectable()
 export class EntitlementTokenRCUAdapter extends RCUDataAdapter<EntitlementTokenManager> {
@@ -34,12 +34,12 @@ export class EntitlementTokenRCUAdapter extends RCUDataAdapter<EntitlementTokenM
             case RCUMessageType.UPDATE: {
                 const typedData = data as unknown as EntitlementsToken;
                 this.logger.log('Updating entitlement token');
-                this.setState(typedData);
+                this.manager.updateValue(typedData);
                 break;
             }
             case RCUMessageType.DELETE: {
                 this.logger.log('Deleting entitlement token');
-                this.setState(null);
+                this.manager.deleteState();
                 break;
             }
             default:
@@ -57,11 +57,11 @@ export class EntitlementTokenRCUAdapter extends RCUDataAdapter<EntitlementTokenM
             return null;
         });
         if (!resp || resp.status !== HttpStatus.OK) return;
-        if (this.getState() === null) {
+        if (this.manager.getView() === null) {
             this.logger.log(
                 'Setting initial entitlement token state',
             );
-            this.setState(resp.data);
+            this.manager.updateValue(resp.data);
         }
     }
 

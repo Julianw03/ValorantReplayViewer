@@ -12,9 +12,9 @@ import {
     UseGuards,
 } from '@nestjs/common';
 import { ApiAcceptedResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
-import { ReplayIOManagerV2 } from '@/plugins/replay/storage/ReplayIOManagerV2';
+import { ReplayIOManager } from '@/plugins/replay/storage/ReplayIOManager';
 import { GetRecentMatchesDto } from '@/plugins/replay/remote/GetRecentMatchesDTO';
-import { MatchHistoryEntry } from '@/api/riot/RiotValorantAPI';
+import { MatchHistoryEntry } from '@/api/riot/RiotValorantAPIManager';
 import { ProductSessionGuard, RequiredProduct } from '@/caching/ProductSessionManager/ProductSessionGuard';
 import { DownloadStateDTO } from '#/dto/DownloadStateDTO';
 
@@ -27,7 +27,7 @@ export class ReplayRemoteController {
     private readonly logger = new Logger(ReplayRemoteController.name);
 
     constructor(
-        protected readonly replayIOManager: ReplayIOManagerV2,
+        protected readonly replayIOManager: ReplayIOManager,
         protected readonly replayFetchManager: ReplayFetchManager,
     ) {
     }
@@ -82,7 +82,7 @@ export class ReplayRemoteController {
     async getDownloadState(
         @Param('matchId') matchId: string,
     ): Promise<DownloadStateDTO | null> {
-        const entryView = this.replayIOManager.getEntryView(matchId);
+        const entryView = this.replayIOManager.getKeyView(matchId);
         if (entryView === null) {
             throw new BadRequestException(`No download job found for match ${matchId}`);
         }

@@ -1,13 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { RCUDataAdapter } from '@/riotclient/adapters/RCUDataAdapter';
 import { RCUMessageType } from '@/riotclient/messaging/RCUMessage';
 import { RIOT_CLIENT_SERVICE, RIOT_CLIENT_STATE_DISPATCHING_SERVICE } from '@/riotclient/RiotClientTokens';
 import { type RiotClientService } from '@/riotclient/RiotClientService';
 import { AresSessionPayload, ValorantGameLoopManager } from '@/caching/ValorantGameLoop/ValorantGameLoopManager';
-import { RiotValorantAPI } from '@/api/riot/RiotValorantAPI';
+import { RiotValorantAPIManager } from '@/api/riot/RiotValorantAPIManager';
 import type { RiotClientStateDispatcher } from '@/riotclient/RiotClientStateDispatcher';
 import { ForwardedMessage, TrieRCUMessageDispatcher } from '@/riotclient/messaging/trie/TrieRCUMessageDispatcher';
 import { AnyPathPattern, parsePatternString } from '@/riotclient/messaging/path/PatternParser';
+import { RCUDataAdapter } from '@/caching/base/adapters/RCUDataAdapter';
 
 interface RmsEnvelope {
     ackRequired: boolean;
@@ -28,7 +28,7 @@ export class ValorantGameLoopRCUAdapter
         @Inject(RIOT_CLIENT_SERVICE)
         rcService: RiotClientService,
         manager: ValorantGameLoopManager,
-        protected readonly valApi: RiotValorantAPI,
+        protected readonly valApi: RiotValorantAPIManager,
         @Inject(RIOT_CLIENT_STATE_DISPATCHING_SERVICE)
         stateDispatcher: RiotClientStateDispatcher,
         messageDispatcher: TrieRCUMessageDispatcher,
@@ -55,20 +55,20 @@ export class ValorantGameLoopRCUAdapter
             envelope.payload,
         ) as unknown as AresSessionPayload;
 
-        this.setState(payload.loopState);
+        this.manager.updateValue(payload.loopState);
     }
 
     private async fetchAndSetGameLoop(): Promise<void> {
         try {
             const data = await this.valApi.getGameLoopState();
-            this.setState(data.loopState);
+            this.manager.updateValue(data.loopState);
         } catch (error) {
             this.logger.warn('Failed to fetch game loop state', error);
         }
     }
 
     async handleDisconnected(): Promise<void> {
-
+        this.manager.deleteState();
     }
 
     protected getPathParts(): AnyPathPattern[] {

@@ -1,17 +1,26 @@
 import { SimpleUUID } from '@/caching/ValorantMatchStatsModule/RiotMatchApiResponseDTO';
-import { Injectable } from '@nestjs/common';
-import { EmittingMapDataManager } from '@/caching/base/EmittingMapDataManager';
+import { Injectable, Logger } from '@nestjs/common';
 import { SimpleEventBus } from '@/events/SimpleEventBus';
 import { MatchStatus } from '@/caching/ValorantGameSessionModule/MatchStatus';
+import { IMapDataManager } from '@/caching/base/interfaces/IMapDataManager';
+import { EmittingMapDataBehavior } from '@/caching/base/behaviors/emission/EmittingMapDataBehavior';
+import { SimpleMapDataManager } from '@/caching/base/SimpleMapDataManager';
+import { KeyDataUpdatable } from '@/caching/base/interfaces/capabilities/KeyDataUpdatable';
+import { DataDeletable } from '@/caching/base/interfaces/capabilities/DataDeletable';
+import { KeyDataViewable } from '@/caching/base/interfaces/capabilities/KeyDataViewable';
 
 @Injectable()
-export class ValorantGameSessionManager extends EmittingMapDataManager<
-    SimpleUUID,
-    MatchStatus,
-    MatchStatus
-> {
+export class ValorantGameSessionManager implements KeyDataUpdatable<SimpleUUID, MatchStatus>, DataDeletable, KeyDataViewable<SimpleUUID, MatchStatus> {
+    private readonly manager: IMapDataManager<
+        SimpleUUID,
+        MatchStatus,
+        MatchStatus
+    >;
+    private readonly logger = new Logger(this.constructor.name);
+
     constructor(protected readonly eventBus: SimpleEventBus) {
-        super(eventBus);
+        const base = new SimpleMapDataManager<SimpleUUID, MatchStatus>();
+        this.manager = new EmittingMapDataBehavior(base, eventBus, this.constructor.name);
     }
 
     private latestMatchId: SimpleUUID | null = null;
@@ -28,57 +37,6 @@ export class ValorantGameSessionManager extends EmittingMapDataManager<
         // so we need to allow this transition
         [MatchStatus.ASSUMED_CANCELLED]: [MatchStatus.ENDED],
     };
-
-    protected async resetInternalState(): Promise<void> {
-        this.latestMatchId = null;
-    }
-
-    public notifyMatchState(matchId: SimpleUUID, status: MatchStatus): void {
-        const currentStatus = this.getEntryView(matchId);
-        if (currentStatus === status) {
-            return;
-        }
-
-        if (!this.verifyTransition(currentStatus, status)) {
-            this.logger.warn(
-                `Invalid state transition for matchId ${matchId} from ${currentStatus} to ${status}`,
-            );
-            return;
-        }
-
-        if (matchId !== this.latestMatchId) {
-            this.logger.log(
-                `Registering new current matchId ${matchId}, was ${this.latestMatchId}`,
-            );
-            this.handleNewMatchId(matchId);
-        }
-
-        this.logger.log(
-            `Received match state update for Valorant matchId ${matchId} to status ${status}`,
-        );
-        this.logger.log('Latest matchId is', this.latestMatchId);
-        this.setKeyValue(matchId, status);
-    }
-
-    private handleNewMatchId(newMatchId: SimpleUUID): void {
-        const previousMatchId = this.latestMatchId;
-        this.latestMatchId = newMatchId;
-        if (previousMatchId === null) return;
-        const previousStatus = this.getEntryView(previousMatchId);
-        if (
-            !this.matchRegistered(newMatchId) &&
-            this.verifyTransition(previousStatus, MatchStatus.ASSUMED_CANCELLED)
-        ) {
-            this.logger.log(
-                'Previous match was not ended, we will assume that it was cancelled',
-            );
-            this.setKeyValue(previousMatchId, MatchStatus.ASSUMED_CANCELLED);
-        }
-    }
-
-    private matchRegistered(matchId: SimpleUUID): boolean {
-        return this.getEntryView(matchId) !== null;
-    }
 
     private verifyTransition(
         oldStatus: MatchStatus | null,
@@ -97,8 +55,20 @@ export class ValorantGameSessionManager extends EmittingMapDataManager<
         return value;
     }
 
-    setKeyValue(key: SimpleUUID, value: MatchStatus) {
-        const prev = this.getEntryView(key);
+    deleteState(): void {
+        this.manager.deleteState();
+    }
+
+    getKeyView(key: SimpleUUID): MatchStatus | null {
+        return this.manager.getKeyView(key);
+    }
+
+    getView(): Record<SimpleUUID, MatchStatus> | null {
+        return this.manager.getView();
+    }
+
+    updateKeyValue(key: SimpleUUID, value: MatchStatus): void {
+        const prev = this.getKeyView(key);
         if (!this.verifyTransition(prev, value)) return;
         const prevMatchId = this.latestMatchId;
         if (prev === null) {
@@ -107,9 +77,11 @@ export class ValorantGameSessionManager extends EmittingMapDataManager<
                 this.logger.log(
                     `Got a new match id ${key} that will replace ${prevMatchId} -> Attempting to transition it to ${MatchStatus.ASSUMED_CANCELLED}`,
                 );
-                this.setKeyValue(prevMatchId, MatchStatus.ASSUMED_CANCELLED);
+                this.updateKeyValue(prevMatchId, MatchStatus.ASSUMED_CANCELLED);
             }
         }
-        super.setKeyValue(key, value);
+        this.manager.updateKeyValue(key, value);
     }
+
+
 }

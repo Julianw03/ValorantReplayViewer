@@ -6,7 +6,7 @@ import {
     TeamSummary,
 } from '@/plugins/replay/storage/ReplayStorageFormat';
 import { RiotMatchApiResponse } from '@/caching/ValorantMatchStatsModule/RiotMatchApiResponseDTO';
-import { MatchHistoryEntry, RiotValorantAPI } from '@/api/riot/RiotValorantAPI';
+import { MatchHistoryEntry, RiotValorantAPIManager } from '@/api/riot/RiotValorantAPIManager';
 import { ValorantMatchStatsManager } from '@/caching/ValorantMatchStatsModule/ValorantMatchStatsManager';
 import { EntitlementTokenManager } from '@/caching/EntitlementTokenModule/EntitlementTokenManager';
 import { PuuidToPlayerAliasManager } from '@/caching/PuuidToPlayerAliasManager/PuuidToPlayerAliasManager';
@@ -22,7 +22,7 @@ export class ReplayFetchManager {
     private readonly logger = new Logger(ReplayFetchManager.name);
 
     constructor(
-        private readonly apiClient: RiotValorantAPI,
+        private readonly apiClient: RiotValorantAPIManager,
         private readonly tokenManager: EntitlementTokenManager,
         private readonly valorantMatchStatsManager: ValorantMatchStatsManager,
         private readonly puuidManager: PuuidToPlayerAliasManager,
