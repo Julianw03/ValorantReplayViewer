@@ -323,7 +323,7 @@ export class RiotValorantAPIManager implements OnModuleInit, OnModuleDestroy {
     public createUrl = (endpoint: ValorantServiceUrl, path: string) => {
         const base = this.manager.getKeyView(endpoint);
         if (!base) {
-            throw new Error(`No base URL found for ${endpoint}`);
+            throw new Error(`No base URL found for ${endpoint}. Maybe not ready yet?`);
         }
         return new URL(path, base);
     };
