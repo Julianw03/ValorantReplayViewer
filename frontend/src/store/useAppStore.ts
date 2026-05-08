@@ -156,7 +156,7 @@ export const useAppStore = create<AppState>((set) => {
                 set({ currentInjectState: event.payload.value as InjectStatus });
             },
 
-            ReplayIOManagerV2: (event) => {
+            ReplayIOManager: (event) => {
                 switch (event.type) {
                     case 'KeyValueUpdated': {
                         // A single match's state changed.
