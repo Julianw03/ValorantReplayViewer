@@ -2,7 +2,6 @@
 ### Overview
 This update primarily focuses on backend improvements with minimal expected impact on user-facing behavior.
 
-- A lot of the changes have been to the backend and should, ideally, not have any effect on your experience. 
 Changes include:
   - Valorant API Url's should now be configured automatically based on your regions' config based on an intial config fetch.
   - Messages (from Riot Client to the internal Managers) should now be passed faster (as we use a prefix tree instead of a regex per listener).
