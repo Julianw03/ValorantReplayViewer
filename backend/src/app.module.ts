@@ -19,7 +19,9 @@ import { appConfig } from '@/config/configLoader';
 import { ConfigurationModule } from '@/config/ConfigurationModule';
 import { getPackageAwarePath } from '@/utils/PackagedPath';
 import { PuuidToPlayerAliasModule } from '@/modules/PuuidToPlayerAliasModule/PuuidToPlayerAliasModule';
+import { ShutdownModule } from '@/modules/ShutdownModule/ShutdownModule';
 
+export const APP = Symbol('APP');
 
 @Module({
     imports: [
@@ -45,6 +47,7 @@ import { PuuidToPlayerAliasModule } from '@/modules/PuuidToPlayerAliasModule/Puu
         MapAssetResolverModule,
         StaticAssetProxyModule,
         ValorantVersionInfoModule,
+        ShutdownModule,
         EventBusModule,
         ReplayModule,
     ],
