@@ -1,0 +1,73 @@
+import {
+    OnGatewayConnection,
+    OnGatewayDisconnect,
+    WebSocketGateway,
+    WebSocketServer,
+} from '@nestjs/websockets';
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Server } from 'ws';
+import { SimpleEventBus } from '@/core/events/SimpleEventBus';
+import { AccountNameAndTagLineManager } from '@/modules/AccountNameAndTagLineModule/AccountNameAndTagLineManager';
+import { ValorantGameLoopManager } from '@/modules/Valorant/ValorantGameLoopModule/ValorantGameLoopManager';
+import { ValorantGameSessionManager } from '@/modules/Valorant/ValorantGameSessionModule/ValorantGameSessionManager';
+import { ValorantMatchStatsManager } from '@/modules/Valorant/ValorantMatchStatsModule/ValorantMatchStatsManager';
+import { ReplayInjectManager } from '@/modules/Valorant/ValorantReplays/injector/ReplayInjectManager';
+import { ValorantVersionInfoManager } from '@/modules/Valorant/ValorantVersionInfo/ValorantVersionInfoManager';
+import { ProductSessionManager } from '@/modules/ProductSessionModule/ProductSessionManager';
+import { ReplayIOManager } from '@/modules/Valorant/ValorantReplays/storage/ReplayIOManager';
+
+@WebSocketGateway({})
+@Injectable()
+export class WSEventPublisher
+    implements
+        OnModuleInit,
+        OnModuleDestroy,
+        OnGatewayConnection,
+        OnGatewayDisconnect
+{
+    @WebSocketServer()
+    server!: Server;
+
+    constructor(private readonly bus: SimpleEventBus) {}
+
+    //TODO: Make this dynamic
+    private static readonly ALLOWED_SOURCES = new Set([
+        AccountNameAndTagLineManager.name,
+        ValorantGameLoopManager.name,
+        ValorantGameSessionManager.name,
+        ValorantMatchStatsManager.name,
+        ReplayInjectManager.name,
+        ValorantVersionInfoManager.name,
+        ProductSessionManager.name,
+        ReplayIOManager.name
+    ]);
+
+    private unsubscribeAll: (() => void) | null = null;
+
+    handleConnection(client: any, ...args: any[]): any {}
+
+    handleDisconnect(client: any): any {}
+
+    onModuleDestroy(): any {
+        this.unsubscribeAll?.();
+    }
+
+    onModuleInit(): any {
+        this.unsubscribeAll = this.bus.subscribeOnAll((event) => {
+            if (
+                !event.source ||
+                !WSEventPublisher.ALLOWED_SOURCES.has(event.source)
+            ) {
+                return;
+            }
+
+            const payload = JSON.stringify({ type: 'event', data: event });
+
+            this.server.clients.forEach((client) => {
+                if (client.readyState === client.OPEN) {
+                    client.send(payload);
+                }
+            });
+        });
+    }
+}

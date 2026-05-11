@@ -1,7 +1,7 @@
-import { TrieNode } from '@/riotclient/messaging/trie/TrieNode';
+import { TrieNode } from '@/core/riotclient/messaging/trie/TrieNode';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { parsePatternString } from '@/riotclient/messaging/path/PatternParser';
-import { PATH_TYPE } from '@/riotclient/messaging/path/PathPattern';
+import { parsePatternString } from '@/core/riotclient/messaging/path/PatternParser';
+import { PATH_TYPE } from '@/core/riotclient/messaging/path/PathPattern';
 
 describe('TrieNode', () => {
     let root: TrieNode;

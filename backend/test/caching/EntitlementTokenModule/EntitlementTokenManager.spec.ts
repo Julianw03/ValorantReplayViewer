@@ -1,4 +1,4 @@
-import { EntitlementTokenManager } from '@/caching/EntitlementTokenModule/EntitlementTokenManager';
+import { EntitlementTokenManager } from '@/modules/EntitlementTokenModule/EntitlementTokenManager';
 import { EntitlementsToken } from '../../../gen';
 import { beforeEach, describe, expect, it } from 'vitest';
 

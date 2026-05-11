@@ -1,24 +1,24 @@
 import { Module } from '@nestjs/common';
-import { RiotClientModule } from '@/riotclient/RiotClientModule';
-import { ProductSessionModule } from '@/caching/ProductSessionManager/ProductSessionModule';
-import { ValorantGameSessionModule } from '@/caching/ValorantGameSessionModule/ValorantGameSessionModule';
-import { AccountNameAndTagLineModule } from '@/caching/AccountNameAndTagLineModule/AccountNameAndTagLineModule';
-import { EntitlementTokenModule } from '@/caching/EntitlementTokenModule/EntitlementTokenModule';
-import { ValorantMatchStatsModule } from '@/caching/ValorantMatchStatsModule/ValorantMatchStatsModule';
-import { EventBusModule } from '@/events/EventBusModule';
+import { RiotClientModule } from '@/core/riotclient/RiotClientModule';
+import { ProductSessionModule } from '@/modules/ProductSessionModule/ProductSessionModule';
+import { ValorantGameSessionModule } from '@/modules/Valorant/ValorantGameSessionModule/ValorantGameSessionModule';
+import { AccountNameAndTagLineModule } from '@/modules/AccountNameAndTagLineModule/AccountNameAndTagLineModule';
+import { EntitlementTokenModule } from '@/modules/EntitlementTokenModule/EntitlementTokenModule';
+import { ValorantMatchStatsModule } from '@/modules/Valorant/ValorantMatchStatsModule/ValorantMatchStatsModule';
+import { EventBusModule } from '@/core/events/EventBusModule';
 import { ConfigModule } from '@nestjs/config';
-import { ReplayModule } from '@/plugins/replay/ReplayModule';
-import { ValorantGameLoopModule } from '@/caching/ValorantGameLoop/ValorantGameLoopModule';
-import { RiotValorantAPIModule } from '@/api/riot/RiotValorantAPIModule';
-import { ValorantAssetAPIModule } from '@/api/NotOfficer/ValorantAssetAPIModule';
+import { ReplayModule } from '@/modules/Valorant/ValorantReplays/ReplayModule';
+import { ValorantGameLoopModule } from '@/modules/Valorant/ValorantGameLoopModule/ValorantGameLoopModule';
+import { RiotValorantAPIModule } from '@/integrations/riot/RiotValorantAPIModule';
+import { ValorantAssetAPIModule } from '@/integrations/NotOfficer/ValorantAssetAPIModule';
 import { ServeStaticModule } from '@nestjs/serve-static';
-import { MapAssetResolverModule } from '@/caching/AssetResolving/MapAssetResolverModule';
-import { StaticAssetProxyModule } from '@/caching/AssetProxy/StaticAssetProxyModule';
-import { ValorantVersionInfoModule } from '@/caching/ValorantVersionInfo/ValorantVersionInfoModule';
+import { MapAssetResolverModule } from '@/modules/AssetResolvingModule/MapAssetResolverModule';
+import { StaticAssetProxyModule } from '@/modules/AssetProxyModule/StaticAssetProxyModule';
+import { ValorantVersionInfoModule } from '@/modules/Valorant/ValorantVersionInfo/ValorantVersionInfoModule';
 import { appConfig } from '@/config/configLoader';
 import { ConfigurationModule } from '@/config/ConfigurationModule';
 import { getPackageAwarePath } from '@/utils/PackagedPath';
-import { PuuidToPlayerAliasModule } from '@/caching/PuuidToPlayerAliasManager/PuuidToPlayerAliasModule';
+import { PuuidToPlayerAliasModule } from '@/modules/PuuidToPlayerAliasModule/PuuidToPlayerAliasModule';
 
 
 @Module({

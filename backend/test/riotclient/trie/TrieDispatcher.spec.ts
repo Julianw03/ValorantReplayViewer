@@ -1,8 +1,8 @@
-import { TrieRCUMessageDispatcher } from '@/riotclient/messaging/trie/TrieRCUMessageDispatcher';
+import { TrieRCUMessageDispatcher } from '@/core/riotclient/messaging/trie/TrieRCUMessageDispatcher';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { RCUMessage } from '@/riotclient/messaging/RCUMessage';
+import { RCUMessage } from '@/core/riotclient/messaging/RCUMessage';
 import { firstValueFrom, take, toArray } from 'rxjs';
-import { parsePatternString } from '@/riotclient/messaging/path/PatternParser';
+import { parsePatternString } from '@/core/riotclient/messaging/path/PatternParser';
 
 function makeMessage(uri: string, extra: Partial<RCUMessage> = {}): RCUMessage {
     return { uri, ...extra } as RCUMessage;
