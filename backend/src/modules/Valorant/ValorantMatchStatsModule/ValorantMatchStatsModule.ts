@@ -4,8 +4,8 @@ import { ValorantMatchStatsManager } from '@/modules/Valorant/ValorantMatchStats
 import { EventBusModule } from '@/core/events/EventBusModule';
 import { ValorantMatchStatsController } from '@/modules/Valorant/ValorantMatchStatsModule/ValorantMatchStatsController';
 import { RiotValorantAPIModule } from '@/integrations/riot/RiotValorantAPIModule';
-import { ProductSessionModule } from '@/modules/ProductSessionManager/ProductSessionModule';
-import { PuuidToPlayerAliasModule } from '@/modules/PuuidToPlayerAliasManager/PuuidToPlayerAliasModule';
+import { ProductSessionModule } from '@/modules/ProductSessionModule/ProductSessionModule';
+import { PuuidToPlayerAliasModule } from '@/modules/PuuidToPlayerAliasModule/PuuidToPlayerAliasModule';
 
 @Module({
     imports: [RiotClientModule, RiotValorantAPIModule, EventBusModule, ProductSessionModule, PuuidToPlayerAliasModule],

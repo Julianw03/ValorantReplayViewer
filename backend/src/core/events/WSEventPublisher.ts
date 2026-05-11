@@ -8,12 +8,12 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Server } from 'ws';
 import { SimpleEventBus } from '@/core/events/SimpleEventBus';
 import { AccountNameAndTagLineManager } from '@/modules/AccountNameAndTagLineModule/AccountNameAndTagLineManager';
-import { ValorantGameLoopManager } from '@/modules/Valorant/ValorantGameLoop/ValorantGameLoopManager';
+import { ValorantGameLoopManager } from '@/modules/Valorant/ValorantGameLoopModule/ValorantGameLoopManager';
 import { ValorantGameSessionManager } from '@/modules/Valorant/ValorantGameSessionModule/ValorantGameSessionManager';
 import { ValorantMatchStatsManager } from '@/modules/Valorant/ValorantMatchStatsModule/ValorantMatchStatsManager';
 import { ReplayInjectManager } from '@/modules/Valorant/ValorantReplays/injector/ReplayInjectManager';
 import { ValorantVersionInfoManager } from '@/modules/Valorant/ValorantVersionInfo/ValorantVersionInfoManager';
-import { ProductSessionManager } from '@/modules/ProductSessionManager/ProductSessionManager';
+import { ProductSessionManager } from '@/modules/ProductSessionModule/ProductSessionManager';
 import { ReplayIOManager } from '@/modules/Valorant/ValorantReplays/storage/ReplayIOManager';
 
 @WebSocketGateway({})

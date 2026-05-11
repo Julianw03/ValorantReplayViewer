@@ -1,5 +1,5 @@
 import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
-import { MapAssetResolverManager } from '@/modules/AssetResolving/MapAssetResolverManager';
+import { MapAssetResolverManager } from '@/modules/AssetResolvingModule/MapAssetResolverManager';
 
 @Controller({
     path: 'assets/maps',

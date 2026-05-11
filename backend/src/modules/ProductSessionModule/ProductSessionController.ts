@@ -1,5 +1,5 @@
 import { Controller, Get, Logger, NotFoundException, Param } from '@nestjs/common';
-import { ProductSessionManager } from '@/modules/ProductSessionManager/ProductSessionManager';
+import { ProductSessionManager } from '@/modules/ProductSessionModule/ProductSessionManager';
 
 @Controller({
     path: 'caching/product-sessions',

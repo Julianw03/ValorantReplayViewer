@@ -11,7 +11,7 @@ import { ApiNotFoundResponse, ApiOkResponse } from '@nestjs/swagger';
 import { ValorantGameSessionManager } from '@/modules/Valorant/ValorantGameSessionModule/ValorantGameSessionManager';
 import { MatchStatusDTO } from '@/modules/Valorant/ValorantGameSessionModule/MatchStatusDTO';
 import type { SimpleUUID } from '@/modules/Valorant/ValorantMatchStatsModule/RiotMatchApiResponseDTO';
-import { ProductSessionGuard, RequiredProduct } from '@/modules/ProductSessionManager/ProductSessionGuard';
+import { ProductSessionGuard, RequiredProduct } from '@/modules/ProductSessionModule/ProductSessionGuard';
 
 @RequiredProduct('valorant')
 @UseGuards(RiotClientReadyGuard, ProductSessionGuard)

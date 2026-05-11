@@ -20,7 +20,7 @@ import {
     Success,
 } from '#/utils/AsyncResult';
 import { RiotMatchApiResponseDTO } from '@/modules/Valorant/ValorantMatchStatsModule/RiotMatchApiResponseDTO';
-import { ProductSessionGuard, RequiredProduct } from '@/modules/ProductSessionManager/ProductSessionGuard';
+import { ProductSessionGuard, RequiredProduct } from '@/modules/ProductSessionModule/ProductSessionGuard';
 import { AsyncResultSchema } from '@/utils/AsyncResultSwagger';
 
 @RequiredProduct('valorant')

@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable, ServiceUnavailableException, SetMetadata } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { Reflector } from '@nestjs/core';
-import { ProductSessionManager } from '@/modules/ProductSessionManager/ProductSessionManager';
+import { ProductSessionManager } from '@/modules/ProductSessionModule/ProductSessionManager';
 
 export const SKIP_SESSIONS_EXISTS_GUARD = 'skipSessionExistsGuard';
 export const SkipRiotClientReadyGuard = () =>

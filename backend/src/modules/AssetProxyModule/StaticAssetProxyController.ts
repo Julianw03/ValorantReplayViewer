@@ -6,7 +6,7 @@ import {
     Res,
 } from '@nestjs/common';
 import { type Response } from 'express';
-import { StaticAssetProxyService } from '@/modules/AssetProxy/StaticAssetProxyService';
+import { StaticAssetProxyService } from '@/modules/AssetProxyModule/StaticAssetProxyService';
 
 @Controller({
     path: 'assets/proxy',

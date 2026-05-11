@@ -6,7 +6,7 @@ import { AsyncResult, AsyncResultUnion } from '#/utils/AsyncResult';
 import { MatchStatus } from '@/modules/Valorant/ValorantGameSessionModule/MatchStatus';
 import { KeyValueUpdatedEvent } from '@/core/events/BasicEvent';
 import { RiotValorantAPIManager } from '@/integrations/riot/RiotValorantAPIManager';
-import { PuuidToPlayerAliasManager } from '@/modules/PuuidToPlayerAliasManager/PuuidToPlayerAliasManager';
+import { PuuidToPlayerAliasManager } from '@/modules/PuuidToPlayerAliasModule/PuuidToPlayerAliasManager';
 import { AsyncMapDataBehavior } from '@/core/data/behaviors/async/AsyncMapDataBehavior';
 import { SimpleMapDataManager } from '@/core/data/SimpleMapDataManager';
 import { EmittingMapDataBehavior } from '@/core/data/behaviors/emission/EmittingMapDataBehavior';

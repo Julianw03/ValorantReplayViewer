@@ -1,5 +1,5 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { ProductSessionManager } from '@/modules/ProductSessionManager/ProductSessionManager';
+import { ProductSessionManager } from '@/modules/ProductSessionModule/ProductSessionManager';
 import { RCUMessageType } from '@/core/riotclient/messaging/RCUMessage';
 import { PluginProductSessionApi, ProductSessionSession } from '../../../gen';
 import type { RiotClientService } from '@/core/riotclient/RiotClientService';

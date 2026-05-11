@@ -3,7 +3,7 @@ import { ValorantAssetAPIModule } from '@/integrations/NotOfficer/ValorantAssetA
 import { ValorantVersionInfoManager } from '@/modules/Valorant/ValorantVersionInfo/ValorantVersionInfoManager';
 import { EventBusModule } from '@/core/events/EventBusModule';
 import { ValorantVersionInfoController } from '@/modules/Valorant/ValorantVersionInfo/ValorantVersionInfoController';
-import { ProductSessionModule } from '@/modules/ProductSessionManager/ProductSessionModule';
+import { ProductSessionModule } from '@/modules/ProductSessionModule/ProductSessionModule';
 
 @Module({
     imports: [ValorantAssetAPIModule, EventBusModule, ProductSessionModule],

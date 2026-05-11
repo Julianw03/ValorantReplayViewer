@@ -6,7 +6,7 @@ import { ValorantGameSessionController } from '@/modules/Valorant/ValorantGameSe
 import { ValorantGameChampSelectRCUAdapter } from '@/modules/Valorant/ValorantGameSessionModule/ValorantGameChampSelectRCUAdapter';
 import { ValorantMatchEndedRCUAdapter } from '@/modules/Valorant/ValorantGameSessionModule/ValorantMatchEndedRCUAdapter';
 import { ValorantGameInProgressRCUAdapter } from '@/modules/Valorant/ValorantGameSessionModule/ValorantGameInProgressRCUAdapter';
-import { ProductSessionModule } from '@/modules/ProductSessionManager/ProductSessionModule';
+import { ProductSessionModule } from '@/modules/ProductSessionModule/ProductSessionModule';
 
 @Module({
     imports: [RiotClientModule, EventBusModule, ProductSessionModule],

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { RiotClientModule } from '@/core/riotclient/RiotClientModule';
-import { ProductSessionModule } from '@/modules/ProductSessionManager/ProductSessionModule';
+import { ProductSessionModule } from '@/modules/ProductSessionModule/ProductSessionModule';
 import { ValorantGameSessionModule } from '@/modules/Valorant/ValorantGameSessionModule/ValorantGameSessionModule';
 import { AccountNameAndTagLineModule } from '@/modules/AccountNameAndTagLineModule/AccountNameAndTagLineModule';
 import { EntitlementTokenModule } from '@/modules/EntitlementTokenModule/EntitlementTokenModule';
@@ -8,17 +8,17 @@ import { ValorantMatchStatsModule } from '@/modules/Valorant/ValorantMatchStatsM
 import { EventBusModule } from '@/core/events/EventBusModule';
 import { ConfigModule } from '@nestjs/config';
 import { ReplayModule } from '@/modules/Valorant/ValorantReplays/ReplayModule';
-import { ValorantGameLoopModule } from '@/modules/Valorant/ValorantGameLoop/ValorantGameLoopModule';
+import { ValorantGameLoopModule } from '@/modules/Valorant/ValorantGameLoopModule/ValorantGameLoopModule';
 import { RiotValorantAPIModule } from '@/integrations/riot/RiotValorantAPIModule';
 import { ValorantAssetAPIModule } from '@/integrations/NotOfficer/ValorantAssetAPIModule';
 import { ServeStaticModule } from '@nestjs/serve-static';
-import { MapAssetResolverModule } from '@/modules/AssetResolving/MapAssetResolverModule';
-import { StaticAssetProxyModule } from '@/modules/AssetProxy/StaticAssetProxyModule';
+import { MapAssetResolverModule } from '@/modules/AssetResolvingModule/MapAssetResolverModule';
+import { StaticAssetProxyModule } from '@/modules/AssetProxyModule/StaticAssetProxyModule';
 import { ValorantVersionInfoModule } from '@/modules/Valorant/ValorantVersionInfo/ValorantVersionInfoModule';
 import { appConfig } from '@/config/configLoader';
 import { ConfigurationModule } from '@/config/ConfigurationModule';
 import { getPackageAwarePath } from '@/utils/PackagedPath';
-import { PuuidToPlayerAliasModule } from '@/modules/PuuidToPlayerAliasManager/PuuidToPlayerAliasModule';
+import { PuuidToPlayerAliasModule } from '@/modules/PuuidToPlayerAliasModule/PuuidToPlayerAliasModule';
 
 
 @Module({

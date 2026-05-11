@@ -2,7 +2,7 @@ import { ConflictException, Injectable, Logger, NotFoundException, OnModuleDestr
 import { SimpleEventBus } from '@/core/events/SimpleEventBus';
 import { EventType } from '@/core/events/EventTypes';
 import { StateUpdatedEvent } from '@/core/events/BasicEvent';
-import { ValorantGameLoopManager } from '@/modules/Valorant/ValorantGameLoop/ValorantGameLoopManager';
+import { ValorantGameLoopManager } from '@/modules/Valorant/ValorantGameLoopModule/ValorantGameLoopManager';
 import { RiotValorantAPIManager } from '@/integrations/riot/RiotValorantAPIManager';
 import { ReplayIOManager } from '@/modules/Valorant/ValorantReplays/storage/ReplayIOManager';
 import { IObjectDataManager } from '@/core/data/interfaces/IObjectDataManager';

@@ -1,7 +1,7 @@
 import { ValorantAssetAPIModule } from '@/integrations/NotOfficer/ValorantAssetAPIModule';
 import { Module } from '@nestjs/common';
-import { MapAssetResolverManager } from '@/modules/AssetResolving/MapAssetResolverManager';
-import { MapAssetResolverController } from '@/modules/AssetResolving/MapAssetResolverController';
+import { MapAssetResolverManager } from '@/modules/AssetResolvingModule/MapAssetResolverManager';
+import { MapAssetResolverController } from '@/modules/AssetResolvingModule/MapAssetResolverController';
 
 @Module({
     imports: [ValorantAssetAPIModule],

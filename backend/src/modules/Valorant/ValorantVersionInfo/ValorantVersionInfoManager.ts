@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nest
 import { SimpleEventBus } from '@/core/events/SimpleEventBus';
 import fs from 'node:fs';
 import * as readline from 'node:readline';
-import { ProductSessionManager } from '@/modules/ProductSessionManager/ProductSessionManager';
+import { ProductSessionManager } from '@/modules/ProductSessionModule/ProductSessionManager';
 import { type ConfigType } from '@nestjs/config';
 import { appConfig } from '@/config/configLoader';
 import { MinimalVersionInfoDTO } from '@/modules/Valorant/ValorantVersionInfo/MinimalVersionInfoDTO';

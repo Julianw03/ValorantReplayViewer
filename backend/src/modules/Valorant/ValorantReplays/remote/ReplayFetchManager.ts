@@ -9,7 +9,7 @@ import { RiotMatchApiResponse } from '@/modules/Valorant/ValorantMatchStatsModul
 import { MatchHistoryEntry, RiotValorantAPIManager } from '@/integrations/riot/RiotValorantAPIManager';
 import { ValorantMatchStatsManager } from '@/modules/Valorant/ValorantMatchStatsModule/ValorantMatchStatsManager';
 import { EntitlementTokenManager } from '@/modules/EntitlementTokenModule/EntitlementTokenManager';
-import { PuuidToPlayerAliasManager } from '@/modules/PuuidToPlayerAliasManager/PuuidToPlayerAliasManager';
+import { PuuidToPlayerAliasManager } from '@/modules/PuuidToPlayerAliasModule/PuuidToPlayerAliasManager';
 
 export interface CombinedReplayData {
     metadata: ReplayMetadata;

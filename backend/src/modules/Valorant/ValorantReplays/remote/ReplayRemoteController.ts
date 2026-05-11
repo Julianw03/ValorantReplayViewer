@@ -15,7 +15,7 @@ import { ApiAcceptedResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagge
 import { ReplayIOManager } from '@/modules/Valorant/ValorantReplays/storage/ReplayIOManager';
 import { GetRecentMatchesDto } from '@/modules/Valorant/ValorantReplays/remote/GetRecentMatchesDTO';
 import { MatchHistoryEntry } from '@/integrations/riot/RiotValorantAPIManager';
-import { ProductSessionGuard, RequiredProduct } from '@/modules/ProductSessionManager/ProductSessionGuard';
+import { ProductSessionGuard, RequiredProduct } from '@/modules/ProductSessionModule/ProductSessionGuard';
 import { DownloadStateDTO } from '#/dto/DownloadStateDTO';
 
 @RequiredProduct('valorant')

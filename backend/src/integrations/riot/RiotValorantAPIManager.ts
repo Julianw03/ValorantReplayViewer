@@ -1,12 +1,12 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { EntitlementTokenManager } from '@/modules/EntitlementTokenModule/EntitlementTokenManager';
-import { ProductSessionManager } from '@/modules/ProductSessionManager/ProductSessionManager';
+import { ProductSessionManager } from '@/modules/ProductSessionModule/ProductSessionManager';
 import { ValorantMatchStatsManager } from '@/modules/Valorant/ValorantMatchStatsModule/ValorantMatchStatsManager';
 import { RiotMatchApiResponse } from '@/modules/Valorant/ValorantMatchStatsModule/RiotMatchApiResponseDTO';
 import { ValorantVersionInfoManager } from '@/modules/Valorant/ValorantVersionInfo/ValorantVersionInfoManager';
 import { type ConfigType } from '@nestjs/config';
 import { appConfig } from '@/config/configLoader';
-import { ProductSessionDTO } from '@/modules/ProductSessionManager/ProductSessionDTO';
+import { ProductSessionDTO } from '@/modules/ProductSessionModule/ProductSessionDTO';
 import { SimpleEventBus } from '@/core/events/SimpleEventBus';
 import { RegionToDefaultShardMap } from '@/config/ConfigV1DTO';
 import { combineLatest, fromEventPattern, Subscription } from 'rxjs';

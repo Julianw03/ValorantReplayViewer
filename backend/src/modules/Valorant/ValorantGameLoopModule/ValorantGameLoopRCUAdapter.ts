@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { RCUMessageType } from '@/core/riotclient/messaging/RCUMessage';
 import { RIOT_CLIENT_SERVICE, RIOT_CLIENT_STATE_DISPATCHING_SERVICE } from '@/core/riotclient/RiotClientTokens';
 import { type RiotClientService } from '@/core/riotclient/RiotClientService';
-import { AresSessionPayload, ValorantGameLoopManager } from '@/modules/Valorant/ValorantGameLoop/ValorantGameLoopManager';
+import { AresSessionPayload, ValorantGameLoopManager } from '@/modules/Valorant/ValorantGameLoopModule/ValorantGameLoopManager';
 import { RiotValorantAPIManager } from '@/integrations/riot/RiotValorantAPIManager';
 import type { RiotClientStateDispatcher } from '@/core/riotclient/RiotClientStateDispatcher';
 import { ForwardedMessage, TrieRCUMessageDispatcher } from '@/core/riotclient/messaging/trie/TrieRCUMessageDispatcher';

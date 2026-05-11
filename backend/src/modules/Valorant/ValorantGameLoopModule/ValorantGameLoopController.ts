@@ -9,8 +9,8 @@ import {
 } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { RiotClientReadyGuard } from '@/core/riotclient/RiotClientReadyGuard';
-import { ValorantGameLoopManager } from '@/modules/Valorant/ValorantGameLoop/ValorantGameLoopManager';
-import { ProductSessionGuard, RequiredProduct } from '@/modules/ProductSessionManager/ProductSessionGuard';
+import { ValorantGameLoopManager } from '@/modules/Valorant/ValorantGameLoopModule/ValorantGameLoopManager';
+import { ProductSessionGuard, RequiredProduct } from '@/modules/ProductSessionModule/ProductSessionGuard';
 
 @RequiredProduct('valorant')
 @UseGuards(RiotClientReadyGuard, ProductSessionGuard)

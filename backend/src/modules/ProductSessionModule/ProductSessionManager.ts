@@ -2,7 +2,7 @@ import { SimpleMapDataManager } from '@/core/data/SimpleMapDataManager';
 import { SimpleEventBus } from '@/core/events/SimpleEventBus';
 import { IMapDataManager } from '@/core/data/interfaces/IMapDataManager';
 import { ProductSessionSession } from '../../../gen';
-import { ProductSessionDTO } from '@/modules/ProductSessionManager/ProductSessionDTO';
+import { ProductSessionDTO } from '@/modules/ProductSessionModule/ProductSessionDTO';
 import { RecomputingMapMappingBehavior } from '@/core/data/behaviors/viewMapping/RecomputingMapMappingBehavior';
 import { EmittingMapDataBehavior } from '@/core/data/behaviors/emission/EmittingMapDataBehavior';
 import { EventType } from '@/core/events/EventTypes';
