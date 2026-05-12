@@ -432,6 +432,12 @@ export function useDeleteConfigOverrides() {
     });
 }
 
+export function useShutdown() {
+    return useMutation({
+        mutationFn: () => api.processControl.shutdown(),
+    });
+}
+
 export function useMatchMetadata(matchId: string, enabled = true) {
     return useQuery({
         queryKey: queryKeys.matchMetadata(matchId),
