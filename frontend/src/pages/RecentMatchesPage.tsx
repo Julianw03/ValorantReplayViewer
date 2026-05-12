@@ -49,8 +49,8 @@ export function RecentMatchesPage() {
 
       {isLoading ? (
         <div className="flex flex-col gap-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-14 w-full rounded-lg" />
+          {Array.from({ length: 10 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-lg" />
           ))}
         </div>
       ) : matches.length === 0 && !isError ? (

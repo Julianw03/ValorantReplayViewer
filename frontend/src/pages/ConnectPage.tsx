@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Zap, Loader2, AlertCircle, ServerOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useConnect, useIsConnected } from '@/lib/queries'
+import { ShutdownButton } from '@/components/ShutdownButton'
 
 export function ConnectPage() {
   const navigate = useNavigate()
@@ -17,7 +18,7 @@ export function ConnectPage() {
   }, [isConnected, navigate])
 
   return (
-    <div className="flex h-screen flex-col items-center justify-center gap-8 p-8">
+    <div className="relative flex h-screen flex-col items-center justify-center gap-8 p-8">
       {/* Logo */}
       <div className="flex flex-col items-center gap-3">
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-lg">
@@ -85,6 +86,8 @@ export function ConnectPage() {
           </div>
         )}
       </div>
+
+      <ShutdownButton className="absolute bottom-4 left-4 h-8 w-8 text-muted-foreground hover:text-destructive" />
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BugPlay, ChevronDown, Clock, HardDrive, Loader2, Power, Settings, Zap } from 'lucide-react';
+import { BugPlay, ChevronDown, Clock, HardDrive, Settings, Zap } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
     Sidebar,
@@ -16,25 +16,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
 import { cn } from '@/lib/utils';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Button } from '@/components/ui/button';
-import { useShutdown } from '@/lib/queries';
-
-function ShutdownButton() {
-    const { mutate: shutdown, isPending } = useShutdown();
-    return (
-        <ConfirmDialog
-            title="Shut down VRV?"
-            description="This will stop the VRV backend process. You will need to restart the application manually."
-            confirmLabel="Shut down"
-            onConfirm={() => shutdown()}
-        >
-            <Button variant="ghost" size="icon" disabled={isPending} className="h-7 w-7 text-muted-foreground hover:text-destructive">
-                {isPending ? <Loader2 className="size-4 animate-spin" /> : <Power className="size-4" />}
-            </Button>
-        </ConfirmDialog>
-    );
-}
+import { ShutdownButton } from '@/components/ShutdownButton';
 
 const replayNavItems = [
     { title: 'Saved Replays', path: '/saved', icon: HardDrive },
