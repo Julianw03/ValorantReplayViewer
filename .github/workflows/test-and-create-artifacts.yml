@@ -11,9 +11,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: pnpm
+          cache-dependency-path: |
+            frontend/pnpm-lock.yaml
+            backend/pnpm-lock.yaml
 
       - uses: actions/setup-java@v4
         with:
@@ -23,39 +31,39 @@ jobs:
       - name: Prepare frontend
         run: |
           cd frontend
-          npm ci
+          pnpm ci
 
       - name: Test frontend
         run: |
           cd frontend
-          npm run typescript-check
+          pnpm run typescript-check
 
       - name:  Build frontend
         run: |
           cd frontend
-          npm run build 
+          pnpm run build 
 
       - name: Setup backend
         run: |
             cd backend
             mkdir -p public
             cp -r ../frontend/dist/* public/
-            npm ci
+            pnpm ci
 
       - name: Generate Riot API types
         run: |
             cd backend
-            npm run generate
+            pnpm run generate
 
       - name: Run backend tests
         run: |
           cd backend
-          npm run test
+          pnpm run test
 
       - name: Build  backend
         run: |
           cd backend
-          npm run build
+          pnpm run build
 
       - name: Upload backend bundle
         uses: actions/upload-artifact@v4
