@@ -16,6 +16,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
 import { cn } from '@/lib/utils';
+import { ShutdownButton } from '@/components/ShutdownButton';
 
 const replayNavItems = [
     { title: 'Saved Replays', path: '/saved', icon: HardDrive },
@@ -112,7 +113,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarContent>
             <SidebarRail />
             <SidebarFooter>
-                <ConnectionStatus />
+                <div className="flex items-center justify-between">
+                    <ConnectionStatus />
+                    <ShutdownButton />
+                </div>
             </SidebarFooter>
         </Sidebar>
     );

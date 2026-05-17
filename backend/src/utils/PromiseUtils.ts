@@ -15,6 +15,8 @@ export const withMaxTimeout = <T>(
     ]);
 };
 
+export const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export class TimeoutError extends Error {
     constructor(message?: string) {
         super(message);

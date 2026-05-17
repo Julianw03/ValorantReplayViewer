@@ -301,4 +301,7 @@ export const api = {
             }),
         deleteOverrides: () => request('/configuration/overrides', { method: 'DELETE' }),
     },
+    processControl: {
+        shutdown: () => request('/process-control/shutdown', { method: 'POST' }),
+    },
 } as const;
