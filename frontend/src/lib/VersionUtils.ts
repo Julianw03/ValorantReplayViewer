@@ -32,10 +32,13 @@ export const parseSemver = (version: string): SemVer | undefined => {
 };
 
 export const checkCompatibility = (
-    currentVersion: string,
-    versionToCheck: string,
+    currentVersion: string | null,
+    versionToCheck: string | null,
 ): VersionComparisonResult => {
     try {
+        if (currentVersion === null || versionToCheck === null) {
+            return VersionComparisonResult.UNKNOWN;
+        }
         const current = parseSemver(currentVersion);
         const candidate = parseSemver(versionToCheck);
 
