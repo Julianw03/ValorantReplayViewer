@@ -10,6 +10,7 @@ import { IObjectDataManager } from '@/core/data/interfaces/IObjectDataManager';
 import { SimpleObjectDataManager } from '@/core/data/SimpleObjectDataManager';
 import { EmittingObjectDataBehavior } from '@/core/data/behaviors/emission/EmittingObjectDataBehavior';
 import path from 'path';
+import { EventType } from '@/core/events/EventTypes';
 
 @Injectable()
 export class ValorantVersionInfoManager implements IObjectDataManager<MinimalVersionInfoDTO, MinimalVersionInfoDTO>, OnModuleInit, OnModuleDestroy {
@@ -88,7 +89,6 @@ export class ValorantVersionInfoManager implements IObjectDataManager<MinimalVer
         );
     }
 
-
     onModuleDestroy() {
         this.unsubscribe?.();
         this.unsubscribe = null;
@@ -108,5 +108,13 @@ export class ValorantVersionInfoManager implements IObjectDataManager<MinimalVer
 
     updateValue(value: MinimalVersionInfoDTO): void {
         this.manager.updateValue(value);
+    }
+
+    static onValorantVersionReady(eventBus: SimpleEventBus, callback: (info: MinimalVersionInfoDTO) => void): () => void {
+        return eventBus.subscribeOnSource(ValorantVersionInfoManager.name, (event) => {
+            if (event.type === EventType.StateUpdated) {
+                callback(event.payload.value as MinimalVersionInfoDTO);
+            }
+        });
     }
 }

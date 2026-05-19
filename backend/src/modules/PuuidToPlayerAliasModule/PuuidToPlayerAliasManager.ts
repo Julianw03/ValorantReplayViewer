@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { PlayerAliasDTO } from '@/modules/AccountNameAndTagLineModule/PlayerAliasDTO';
+import { PlayerAlias } from '@/modules/AccountNameAndTagLineModule/PlayerAlias';
 import { type RiotClientService } from '@/core/riotclient/RiotClientService';
 import { RIOT_CLIENT_SERVICE } from '@/core/riotclient/RiotClientTokens';
 import { PlayerAccountLookupV2NamesetsForPuuidResponse, PluginPlayerAccountApi } from '../../../gen';
@@ -20,16 +20,16 @@ class NetworkRequestError extends Error {
 @Injectable()
 export class PuuidToPlayerAliasManager extends AsyncMapDataBehavior<
     string,
-    PlayerAliasDTO,
+    PlayerAlias,
     PuuidToPlayerAliasErrorUnion
 > {
-    protected manager: IMapDataManager<string, PlayerAccountLookupV2NamesetsForPuuidResponse, AsyncResultUnion<PlayerAliasDTO, PuuidToPlayerAliasErrorUnion>>;
+    protected manager: IMapDataManager<string, PlayerAccountLookupV2NamesetsForPuuidResponse, AsyncResultUnion<PlayerAlias, PuuidToPlayerAliasErrorUnion>>;
 
     constructor(
         @Inject(RIOT_CLIENT_SERVICE)
         protected readonly riotClientService: RiotClientService,
     ) {
-        const base = new SimpleMapDataManager<SimpleUUID, AsyncResultUnion<PlayerAliasDTO, PuuidToPlayerAliasErrorUnion>>();
+        const base = new SimpleMapDataManager<SimpleUUID, AsyncResultUnion<PlayerAlias, PuuidToPlayerAliasErrorUnion>>();
         super(base);
     }
 
@@ -55,7 +55,7 @@ export class PuuidToPlayerAliasManager extends AsyncMapDataBehavior<
         }
     }
 
-    protected map(value: PlayerAccountLookupV2NamesetsForPuuidResponse): PlayerAliasDTO {
+    protected map(value: PlayerAccountLookupV2NamesetsForPuuidResponse): PlayerAlias {
         const alias = value.alias;
 
         if (!alias || !alias.gameName || !alias.tagLine) {

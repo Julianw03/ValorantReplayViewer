@@ -17,10 +17,11 @@ import {
     type MinimalMatchTeam,
 } from '@/components/match-details/MatchDetailsPanel.tsx';
 import { InjectButton } from '@/components/saved-replays/InjectButton.tsx';
+import { OutdatedTag } from '@/components/OutdatedTag';
 
 // Shared grid layout — applied to both the header row and each replay row so
-// columns are always aligned. Columns:  queue | map | version | stored | actions
-export const GRID_COLS = '6rem 1fr 10rem 10rem 8rem' as const;
+// columns are always aligned. Columns:  queue | map | version | stored | tags | actions
+export const GRID_COLS = '6rem 1fr 10rem 10rem 6rem 8rem' as const;
 
 const ReplayRowButtons = {
     INJECT: 'inject',
@@ -132,7 +133,9 @@ export function ReplayRow({ replay, shownButtons = Object.values(ReplayRowButton
                      title={new Date(replay.downloadInfo.downloadedAt).toLocaleString()}>
                     {storedAt}
                 </div>
-
+                <div className="flex items-center">
+                    <OutdatedTag matchGameVersion={replay.matchInfo.gameVersion} />
+                </div>
                 {/* Actions */}
                 <div className="flex items-center justify-end gap-1">
                     {shownButtons.includes(ReplayRowButtons.INJECT) && <InjectButton replay={replay} />}

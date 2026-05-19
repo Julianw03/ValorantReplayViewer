@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { AccountNameAndTagLineManager } from '@/modules/AccountNameAndTagLineModule/AccountNameAndTagLineManager';
 import { ApiNotFoundResponse, ApiResponse } from '@nestjs/swagger';
-import { PlayerAliasDTO } from '@/modules/AccountNameAndTagLineModule/PlayerAliasDTO';
+import { PlayerAlias } from '@/modules/AccountNameAndTagLineModule/PlayerAlias';
 import { RiotClientReadyGuard } from '@/core/riotclient/RiotClientReadyGuard';
 
 @UseGuards(RiotClientReadyGuard)
@@ -27,7 +27,7 @@ export class AccountNameAndTagLineController {
     @ApiResponse({
         status: HttpStatus.OK,
         description: 'Returns the active account name and tag line.',
-        type: PlayerAliasDTO,
+        type: PlayerAlias,
     })
     @ApiNotFoundResponse({
         description:

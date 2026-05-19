@@ -1,7 +1,8 @@
 import { IsString } from 'class-validator';
-import { PlayerAlias } from '#/dto/PlayerAlias';
+import { PlayerAliasDTO } from '#/dto/PlayerAliasDTO';
 
-export class PlayerAliasDTO implements PlayerAlias{
+
+export class PlayerAlias implements PlayerAliasDTO {
     @IsString()
     readonly tagLine: string;
     @IsString()

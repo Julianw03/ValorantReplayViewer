@@ -4,6 +4,7 @@ import { BugPlay, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useProductSession, useShippingVersion, useStartInject } from '@/lib/queries.ts';
 import type { ReplayMetadata } from '@/lib/api.ts';
+import { checkCompatibility, VersionComparisonResult } from '@/lib/VersionUtils.ts';
 
 export type InjectButtonProps = {
     replay: ReplayMetadata;
@@ -35,14 +36,6 @@ const getDisabledInfo = (
         };
     }
 
-    const isCurrentVersion = currentGameVersion ? replayGameVersion === currentGameVersion : true;
-    if (!isCurrentVersion) {
-        return {
-            isDisabled: true,
-            tooltip: `Replay game version (${replayGameVersion}) does not match current Valorant version (${currentGameVersion}).`,
-        };
-    }
-
     if (!sessionAvailable) {
         return {
             isDisabled: true,
@@ -50,10 +43,30 @@ const getDisabledInfo = (
         };
     }
 
-    return {
-        isDisabled: false,
-        tooltip: 'Inject this replay into the game client',
-    };
+    const versionCompatibility = checkCompatibility(currentGameVersion, replayGameVersion);
+    switch (versionCompatibility) {
+        case VersionComparisonResult.INCOMPATIBLE:
+            return {
+                isDisabled: true,
+                tooltip: `Replay game version is not compatible with current Valorant version`,
+            };
+        case VersionComparisonResult.EXACT_MATCH:
+            return {
+                isDisabled: false,
+                tooltip: 'Inject this replay into the game client',
+            };
+        case VersionComparisonResult.PROBABLY_COMPATIBLE:
+            return {
+                isDisabled: false,
+                tooltip: 'Inject this replay into the game client.',
+            };
+        case VersionComparisonResult.UNKNOWN:
+        default:
+            return {
+                isDisabled: true,
+                tooltip: 'Unable to determine version compatibility. Injection is disabled as a precaution.',
+            };
+    }
 };
 
 export const InjectButton = (

@@ -1,6 +1,7 @@
 import * as LocalLinkResolver from '@/lib/LocalLinkResolver.ts';
 import type { ProductSession } from '#/dto/ProductSession.ts';
 import type { DownloadStateDTO } from '#/dto/DownloadStateDTO.ts';
+import type { PlayerAliasDTO } from '#/dto/PlayerAliasDTO.ts';
 
 export const API_BASE = LocalLinkResolver.resolve('/api/v1', 'http');
 
@@ -81,16 +82,6 @@ export interface InjectStatus {
     state: InjectState;
     targetMatchId: string | null;
     placeholderMatchId: string | null;
-}
-
-export interface DownloadState {
-    type: 'PENDING' | 'SUCCESS' | 'FAILURE';
-    error?: { message: string };
-}
-
-export interface PlayerAlias {
-    gameName: string;
-    tagLine: string;
 }
 
 // ---- Map assets ----
@@ -276,7 +267,7 @@ export const api = {
         cancelInject: () => request('/plugins/replay/injector', { method: 'DELETE' }),
     },
     account: {
-        getAlias: () => request<PlayerAlias>('/caching/account-name-and-tag-line/active'),
+        getAlias: () => request<PlayerAliasDTO>('/caching/account-name-and-tag-line/active'),
     },
     sessions: {
         getAllProductSessions: () => request<Record<string, ProductSession>>('/caching/product-sessions'),

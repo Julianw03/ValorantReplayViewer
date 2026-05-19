@@ -1,7 +1,10 @@
 import { IObjectDataManager } from '@/core/data/interfaces/IObjectDataManager';
 import { ViewMappingObjectDataBehavior } from '@/core/data/behaviors/viewMapping/ViewMappingObjectDataBehavior';
+import { SimpleObjectDataManager } from '@/core/data/SimpleObjectDataManager';
 
 export class RecomputingObjectMappingBehavior<S, From, To> extends ViewMappingObjectDataBehavior<S, From, To> {
+    private cache: IObjectDataManager<To, To> = new SimpleObjectDataManager<To>();
+
     public constructor(
         stateManager: IObjectDataManager<S, From>,
         mappingFn: (from: From) => To,
@@ -12,12 +15,17 @@ export class RecomputingObjectMappingBehavior<S, From, To> extends ViewMappingOb
         );
     }
 
-    getView(): To | null {
-        const backingEntry = this.stateManager.getView();
-        if (backingEntry === null) {
-            return null;
-        }
-        return this.mappingFn(backingEntry);
+    deleteState() {
+        this.stateManager.deleteState();
+        this.cache.deleteState();
     }
 
+    updateValue(value: S): void {
+        this.stateManager.updateValue(value);
+        this.cache.updateValue(this.mappingFn(this.stateManager.getView()!));
+    }
+
+    getView(): To | null {
+        return this.cache.getView();
+    }
 }

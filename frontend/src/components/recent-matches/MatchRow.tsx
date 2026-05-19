@@ -9,9 +9,10 @@ import { mapDisplayName } from '@/components/saved-replays/formatters';
 import { MatchStatsPanel } from './MatchStatsPanel';
 import { useAppStore } from '@/store/useAppStore';
 import { useRelativeTime } from '@/hooks/useRelativeTime.ts';
+import { OutdatedTag } from '@/components/OutdatedTag';
 
-// Shared grid layout: queue | map | date | actions
-export const GRID_COLS = '7rem 6rem 1fr 8rem' as const;
+// Shared grid layout: queue | map | date | tags | actions
+export const GRID_COLS = '7rem 6rem 1fr 4rem 6rem' as const;
 
 function formatDate(millis: number): string {
     return new Date(millis).toLocaleString('en-US', {
@@ -94,6 +95,7 @@ export function MatchRow({ match }: MatchRowProps) {
     const mapId = matchStats?.type === 'SUCCESS' ? matchStats.data.matchInfo.mapId : null;
     const mapAsset = useAppStore((s) => (mapId ? s.mapRegistry?.[mapId] ?? null : null));
     const isDownloadAvailable = matchStats?.type === 'SUCCESS' ? matchStats.data.matchInfo?.isReplayRecorded : false;
+    const matchGameVersion = matchStats?.type === 'SUCCESS' ? matchStats.data.matchInfo.gameVersion : null;
 
     return (
         <Collapsible
@@ -136,6 +138,9 @@ export function MatchRow({ match }: MatchRowProps) {
 
                 <div className="text-xs text-muted-foreground">
                     {formatDate(match.GameStartTime)} · {relativeTime}
+                </div>
+                <div className="flex items-center">
+                    <OutdatedTag matchGameVersion={matchGameVersion} />
                 </div>
                 <div className="flex items-center justify-end gap-1">
                     <DownloadButton

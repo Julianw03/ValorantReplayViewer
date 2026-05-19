@@ -2,7 +2,7 @@ import { RiotMatchApiResponse, SimpleUUID } from '@/modules/Valorant/ValorantMat
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ValorantGameSessionManager } from '@/modules/Valorant/ValorantGameSessionModule/ValorantGameSessionManager';
 import { SimpleEventBus } from '@/core/events/SimpleEventBus';
-import { AsyncResult, AsyncResultUnion } from '#/utils/AsyncResult';
+import { AsyncResultUnion } from '#/utils/AsyncResult';
 import { MatchStatus } from '@/modules/Valorant/ValorantGameSessionModule/MatchStatus';
 import { KeyValueUpdatedEvent } from '@/core/events/BasicEvent';
 import { RiotValorantAPIManager } from '@/integrations/riot/RiotValorantAPIManager';
@@ -16,9 +16,6 @@ export class ValorantMatchStatsManager
     extends AsyncMapDataBehavior<SimpleUUID, RiotMatchApiResponse, Error>
     implements OnModuleInit, OnModuleDestroy {
     private readonly logger = new Logger(this.constructor.name);
-    public static readonly MAGIC_PLATFORM_STRING =
-        'ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9';
-    public static readonly KEY_ARES_DEPLOYMENT = '-ares-deployment=';
 
     private unsubscribe: (() => void) | null = null;
 
