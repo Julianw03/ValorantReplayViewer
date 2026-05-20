@@ -28,7 +28,6 @@ export class ValorantGameLoopRCUAdapter
         @Inject(RIOT_CLIENT_SERVICE)
         rcService: RiotClientService,
         manager: ValorantGameLoopManager,
-        protected readonly valApi: RiotValorantAPIManager,
         @Inject(RIOT_CLIENT_STATE_DISPATCHING_SERVICE)
         stateDispatcher: RiotClientStateDispatcher,
         messageDispatcher: TrieRCUMessageDispatcher,
@@ -56,15 +55,6 @@ export class ValorantGameLoopRCUAdapter
         ) as unknown as AresSessionPayload;
 
         this.manager.updateValue(payload.loopState);
-    }
-
-    private async fetchAndSetGameLoop(): Promise<void> {
-        try {
-            const data = await this.valApi.getGameLoopState();
-            this.manager.updateValue(data.loopState);
-        } catch (error) {
-            this.logger.warn('Failed to fetch game loop state', error);
-        }
     }
 
     async handleDisconnected(): Promise<void> {

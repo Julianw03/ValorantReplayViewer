@@ -145,9 +145,9 @@ export function useShippingVersion() {
             setShippingVersion(versionInfo.version);
             return versionInfo;
         },
-        enabled: !existing,
-        refetchInterval: 5_000,
-        staleTime: 0,
+        enabled: existing === null,
+        staleTime: Infinity,
+        retry: 3
     });
 
     return existing;

@@ -1,7 +1,6 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { EntitlementTokenManager } from '@/modules/EntitlementTokenModule/EntitlementTokenManager';
 import { ProductSessionManager } from '@/modules/ProductSessionModule/ProductSessionManager';
-import { ValorantMatchStatsManager } from '@/modules/Valorant/ValorantMatchStatsModule/ValorantMatchStatsManager';
 import { RiotMatchApiResponse } from '@/modules/Valorant/ValorantMatchStatsModule/RiotMatchApiResponseDTO';
 import { ValorantVersionInfoManager } from '@/modules/Valorant/ValorantVersionInfo/ValorantVersionInfoManager';
 import { type ConfigType } from '@nestjs/config';
@@ -13,6 +12,11 @@ import { combineLatest, fromEventPattern, Subscription } from 'rxjs';
 import { MinimalVersionInfoDTO } from '@/modules/Valorant/ValorantVersionInfo/MinimalVersionInfoDTO';
 import { IMapDataManager } from '@/core/data/interfaces/IMapDataManager';
 import { SimpleMapDataManager } from '@/core/data/SimpleMapDataManager';
+import { IObjectDataManager } from '@/core/data/interfaces/IObjectDataManager';
+import { EmittingObjectDataBehavior } from '@/core/data/behaviors/emission/EmittingObjectDataBehavior';
+import { SimpleObjectDataManager } from '@/core/data/SimpleObjectDataManager';
+import { EventType } from '@/core/events/EventTypes';
+import { RiotValorantAPIReadyState } from '@/integrations/riot/RiotValorantAPIReadyState';
 
 export enum ValorantServiceUrl {
     ACCOUNT_XP = 'ACCOUNT_XP',
@@ -118,7 +122,12 @@ export interface ClientPlatformInfo {
 
 @Injectable()
 export class RiotValorantAPIManager implements OnModuleInit, OnModuleDestroy {
-    private readonly manager: IMapDataManager<ValorantServiceUrl, string, string>;
+    protected static readonly MAGIC_PLATFORM_STRING =
+        'ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9';
+    protected static readonly KEY_ARES_DEPLOYMENT = '-ares-deployment=';
+
+    private readonly serviceUrls: IMapDataManager<ValorantServiceUrl, string, string>;
+    private readonly readyState: IObjectDataManager<RiotValorantAPIReadyState, RiotValorantAPIReadyState>;
     protected readonly logger = new Logger(this.constructor.name);
     private subscription: Subscription | null = null;
 
@@ -132,7 +141,7 @@ export class RiotValorantAPIManager implements OnModuleInit, OnModuleDestroy {
     );
 
     private readonly versionInfo$ = fromEventPattern<MinimalVersionInfoDTO>(
-        (handler) => this.eventBus.subscribeOnSource(ValorantVersionInfoManager.name, handler),
+        (handler) => ValorantVersionInfoManager.onValorantVersionReady(this.eventBus, handler),
         (_handler, unsubscribe) => unsubscribe(),
     );
 
@@ -140,11 +149,13 @@ export class RiotValorantAPIManager implements OnModuleInit, OnModuleDestroy {
         @Inject(appConfig.KEY)
         protected readonly config: ConfigType<typeof appConfig>,
         private readonly entitlementTokenManager: EntitlementTokenManager,
-        private readonly productSessionManager: ProductSessionManager,
         private readonly versionInfoManager: ValorantVersionInfoManager,
         private readonly eventBus: SimpleEventBus,
     ) {
-        this.manager = new SimpleMapDataManager();
+        this.serviceUrls = new SimpleMapDataManager();
+        const base = new SimpleObjectDataManager<RiotValorantAPIReadyState>();
+        base.updateValue(RiotValorantAPIReadyState.NOT_READY);
+        this.readyState = new EmittingObjectDataBehavior(base, eventBus, RiotValorantAPIManager.name);
     }
 
     onModuleInit() {
@@ -160,6 +171,7 @@ export class RiotValorantAPIManager implements OnModuleInit, OnModuleDestroy {
     }
 
     onModuleDestroy() {
+        this.readyState.updateValue(RiotValorantAPIReadyState.NOT_READY);
         this.subscription?.unsubscribe();
         this.subscription = null;
     }
@@ -169,13 +181,13 @@ export class RiotValorantAPIManager implements OnModuleInit, OnModuleDestroy {
 
         const launchArgs = valorantSession.launchConfiguration?.arguments ?? [];
         const deploymentArg = launchArgs.find((a) =>
-            a.startsWith(ValorantMatchStatsManager.KEY_ARES_DEPLOYMENT),
+            a.startsWith(RiotValorantAPIManager.KEY_ARES_DEPLOYMENT),
         );
         if (!deploymentArg)
             throw new Error('Deployment region not found in launch arguments');
 
         const region = this.config.overrides['valorant-api'].region ?? deploymentArg.split(
-            ValorantMatchStatsManager.KEY_ARES_DEPLOYMENT,
+            RiotValorantAPIManager.KEY_ARES_DEPLOYMENT,
         )[1];
         if (!region) throw new Error('Invalid deployment region value');
 
@@ -195,9 +207,11 @@ export class RiotValorantAPIManager implements OnModuleInit, OnModuleDestroy {
                             this.logger.warn(`Received unknown service URL key: ${normalizedKey}`);
                             return;
                         }
-                        this.manager.updateKeyValue(normalizedKey as ValorantServiceUrl, value);
+                        this.serviceUrls.updateKeyValue(normalizedKey as ValorantServiceUrl, value);
                     }
                 });
+                this.logger.debug('Setting state as ready');
+                this.readyState.updateValue(RiotValorantAPIReadyState.READY);
             })
             .catch(e => this.logger.error(e));
     }
@@ -223,7 +237,7 @@ export class RiotValorantAPIManager implements OnModuleInit, OnModuleDestroy {
             Authorization: `Bearer ${entitlements.accessToken}`,
             'X-Riot-Entitlements-JWT': entitlements.token,
             'X-Riot-ClientPlatform':
-            ValorantMatchStatsManager.MAGIC_PLATFORM_STRING,
+            RiotValorantAPIManager.MAGIC_PLATFORM_STRING,
             'X-Riot-ClientVersion': version,
         };
     }
@@ -316,15 +330,22 @@ export class RiotValorantAPIManager implements OnModuleInit, OnModuleDestroy {
         return data;
     }
 
-    protected getViewForValue(value: string | null): string | null {
-        return value;
-    }
-
     public createUrl = (endpoint: ValorantServiceUrl, path: string) => {
-        const base = this.manager.getKeyView(endpoint);
+        const base = this.serviceUrls.getKeyView(endpoint);
         if (!base) {
             throw new Error(`No base URL found for ${endpoint}. Maybe not ready yet?`);
         }
         return new URL(path, base);
     };
+
+    static onValorantAPIReady(eventBus: SimpleEventBus, handler: () => void): () => void {
+        return eventBus.subscribeOnSource(RiotValorantAPIManager.name, event => {
+            if (event.type === EventType.StateUpdated) {
+                const payload = event.payload;
+                if (payload.value === RiotValorantAPIReadyState.READY) {
+                    handler();
+                }
+            }
+        });
+    }
 }

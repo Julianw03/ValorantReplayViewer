@@ -1,8 +1,9 @@
 import { create } from 'zustand';
-import { InjectStates, type InjectStatus, type MapAsset, type MatchStatsResult, type PlayerAlias } from '@/lib/api';
+import { InjectStates, type InjectStatus, type MapAsset, type MatchStatsResult } from '@/lib/api';
 import type { ProductSession } from '#/dto/ProductSession.ts';
 import type { MinimalVersionInfo } from '#/dto/MinimalVersionInfo.ts';
 import { type DownloadStateDTO } from '#/dto/DownloadStateDTO.ts';
+import type { PlayerAliasDTO } from '#/dto/PlayerAliasDTO.ts';
 
 export type EventType =
     | 'StateUpdated'
@@ -42,7 +43,7 @@ export type KeyValueUpdatedEvent<K extends PropertyKey, V> =
 
 interface AppState {
     wsConnected: boolean;
-    playerAlias: PlayerAlias | null;
+    playerAlias: PlayerAliasDTO | null;
 
     downloadStates: Record<string, DownloadStateDTO> | null;
 
@@ -56,7 +57,7 @@ interface AppState {
     sessionRegistry: Record<string, ProductSession> | null;
 
     setWsConnected: (connected: boolean) => void;
-    setPlayerAlias: (alias: PlayerAlias) => void;
+    setPlayerAlias: (alias: PlayerAliasDTO) => void;
 
     setCurrentInjectState: (currentInjectState: InjectStatus) => void;
 
@@ -86,7 +87,7 @@ export const useAppStore = create<AppState>((set) => {
     // ---------------------------------------------------------------------------
 
     const setWsConnected = (connected: boolean) => set({ wsConnected: connected });
-    const setPlayerAlias = (alias: PlayerAlias) => set({ playerAlias: alias });
+    const setPlayerAlias = (alias: PlayerAliasDTO) => set({ playerAlias: alias });
 
     const setDownloadStates = (states: Record<string, DownloadStateDTO> | null) =>
         set({ downloadStates: states });
@@ -148,7 +149,7 @@ export const useAppStore = create<AppState>((set) => {
         const handlers: Partial<Record<string, (event: AnyBasicEvent) => void>> = {
             AccountNameAndTagLineManager: (event) => {
                 if (event.type !== 'StateUpdated') return;
-                set({ playerAlias: event.payload.value as PlayerAlias | null });
+                set({ playerAlias: event.payload.value as PlayerAliasDTO | null });
             },
 
             ReplayInjectManager: (event) => {

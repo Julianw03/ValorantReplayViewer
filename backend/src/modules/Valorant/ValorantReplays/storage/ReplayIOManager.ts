@@ -15,9 +15,9 @@ import { plainToInstance } from 'class-transformer';
 import { isPathWithin } from '@/utils/PathUtils';
 import { IMapDataManager } from '@/core/data/interfaces/IMapDataManager';
 import { SimpleMapDataManager } from '@/core/data/SimpleMapDataManager';
-import { RecomputingMapMappingBehavior } from '@/core/data/behaviors/viewMapping/RecomputingMapMappingBehavior';
 import { EmittingMapDataBehavior } from '@/core/data/behaviors/emission/EmittingMapDataBehavior';
 import { KeyDataViewable } from '@/core/data/interfaces/capabilities/KeyDataViewable';
+import { CachingMapMappingBehavior } from '@/core/data/behaviors/viewMapping/CachingMapMappingBehavior';
 
 
 type ImportMatchError =
@@ -101,7 +101,7 @@ export class ReplayIOManager implements KeyDataViewable<string, DownloadStateDTO
         config: ConfigType<typeof appConfig>,
     ) {
         const base = new SimpleMapDataManager<string, DownloadState>();
-        const map = new RecomputingMapMappingBehavior(base, ReplayIOManager.map);
+        const map = new CachingMapMappingBehavior(base, ReplayIOManager.map);
         this.manager = new EmittingMapDataBehavior(map, eventBus, this.constructor.name);
         const localAppData =
             process.env.LOCALAPPDATA ??
