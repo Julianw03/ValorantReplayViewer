@@ -61,7 +61,7 @@ export class ReplayInjectManagerV2
             this.status,
             (state, error) => {
                 this.logger.error(`onEnter failed in ${state.constructor.name}`, error);
-                this.machine.dispatch(
+                this.machine.updateValue(
                     new ReplayEvents.Failed(state.constructor.name, error),
                 );
             },
@@ -74,9 +74,9 @@ export class ReplayInjectManagerV2
                 ValorantGameLoopManager.name,
                 (event: StateUpdatedEvent<string>) => {
                     if (event.payload.value === 'REPLAY') {
-                        this.machine.dispatch(new ReplayEvents.ReplayEntered());
+                        this.machine.updateValue(new ReplayEvents.ReplayEntered());
                     } else if (event.payload.value === 'MENUS') {
-                        this.machine.dispatch(new ReplayEvents.MenusEntered());
+                        this.machine.updateValue(new ReplayEvents.MenusEntered());
                     }
                 },
             );
@@ -103,7 +103,7 @@ export class ReplayInjectManagerV2
 
         const placeholderMatchId = await this.resolvePlaceholder();
 
-        this.machine.dispatch(
+        this.machine.updateValue(
             new ReplayEvents.InjectRequested(matchId, placeholderMatchId),
         );
 
@@ -113,7 +113,7 @@ export class ReplayInjectManagerV2
     }
 
     cancelInject(): void {
-        this.machine.dispatch(ReplayEvents.Canceled);
+        this.machine.updateValue(ReplayEvents.Canceled);
     }
 
     getView(): InjectStatus | null {

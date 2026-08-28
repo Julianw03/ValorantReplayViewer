@@ -31,16 +31,16 @@ export class StateMachine<S extends MarkerState<S, E, D>, E extends MarkerEvent,
     constructor(
         private readonly initialState: S,
         private readonly deps: D,
-        inner?: IObjectDataManager<S, unknown>,
+        inner: IObjectDataManager<S, unknown>,
         private readonly onEnterFailed: StateEnterErrorHandler<S> = (state, error) =>
             console.error(`onEnter failed in ${state.constructor.name}`, error),
     ) {
         this.current = initialState;
-        this.inner = inner ?? new SimpleObjectDataManager(initialState);
+        this.inner = inner;
         this.inner.updateValue(initialState);
     }
 
-    dispatch(event: E): void {
+    private dispatch(event: E): void {
         this.queue.push(event);
         if (!this.draining) this.drain();
     }
@@ -73,12 +73,12 @@ export class StateMachine<S extends MarkerState<S, E, D>, E extends MarkerEvent,
                 const next = this.current.transitionOn(event);
                 if (!next || next === this.current) continue;
 
-                this.entry?.abort(); // supersede the state being left
+                this.entry?.abort();
                 const entry = new AbortController();
                 this.entry = entry;
 
                 this.current = next;
-                this.inner.updateValue(next); // every transition writes through
+                this.inner.updateValue(next);
 
                 void Promise.resolve(next.onEnter?.(this.contextFor(entry.signal)))
                     .catch((error) => this.onEnterFailed(next, error));

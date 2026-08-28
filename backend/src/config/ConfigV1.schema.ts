@@ -6,19 +6,22 @@ import path from 'path';
 // Enums
 // ---------------------------------------------------------------------------
 
-export const SupportedRegion = z.enum(['na', 'latam', 'eu', 'ap', 'kr', 'br']);
-export type SupportedRegion = z.infer<typeof SupportedRegion>;
+export const SupportedRegionSchema = z.enum(['na', 'latam', 'eu', 'ap', 'kr', 'br']);
+export type SupportedRegion = z.infer<typeof SupportedRegionSchema>;
 
-export const SupportedShard = z.enum(['na', 'pbe', 'eu', 'ap', 'kr']);
-export type SupportedShard = z.infer<typeof SupportedShard>;
+export const SupportedShardSchema = z.enum(['na', 'pbe', 'eu', 'ap', 'kr']);
+export type SupportedShard = z.infer<typeof SupportedShardSchema>;
+
+export const LogLevelSchema = z.enum(['log', 'error', 'warn', 'debug', 'verbose'])
+export type LogLevel = z.infer<typeof LogLevelSchema>;
 
 export const RegionToDefaultShardMap: Record<SupportedRegion, SupportedShard> = {
-    na: 'na',
-    latam: 'na',
-    br: 'na',
-    eu: 'eu',
-    ap: 'ap',
-    kr: 'kr',
+    na: SupportedShardSchema.enum.na,
+    latam: SupportedShardSchema.enum.na,
+    br: SupportedShardSchema.enum.na,
+    eu: SupportedShardSchema.enum.eu,
+    ap: SupportedShardSchema.enum.ap,
+    kr: SupportedShardSchema.enum.kr
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -74,8 +77,14 @@ export const VersionReadConfiguration = z.object({
 });
 export type VersionReadConfiguration = z.infer<typeof VersionReadConfiguration>;
 
+export const LoggingConfigurationSchema = z.object({
+    levels: z.array(LogLevelSchema),
+});
+export type LoggingConfiguration = z.infer<typeof LoggingConfigurationSchema>;
+
 export const AppConfigurationConfig = z.object({
     port: z.number().int().positive().default(3_000),
+    logging: LoggingConfigurationSchema,
     'additional-cors-origins': z.array(z.string()).default([]),
 });
 export type AppConfigurationConfig = z.infer<typeof AppConfigurationConfig>;
@@ -96,8 +105,8 @@ export const ValorantVersionReadOverrides = z.object({
 export type ValorantVersionReadOverrides = z.infer<typeof ValorantVersionReadOverrides>;
 
 export const ValorantApiOverrides = z.object({
-    region: SupportedRegion.optional(),
-    shard: SupportedShard.optional(),
+    region: SupportedRegionSchema.optional(),
+    shard: SupportedShardSchema.optional(),
 });
 export type ValorantApiOverrides = z.infer<typeof ValorantApiOverrides>;
 
@@ -119,15 +128,6 @@ export const EnvConfigV1DTOSchema = z.object({
 });
 
 export type EnvConfigV1DTO = z.infer<typeof EnvConfigV1DTOSchema>;
-
-// ---------------------------------------------------------------------------
-// Overridable subset
-//
-// Every level is partial so a user can supply only the keys they care about.
-// Built from partial-ized pieces rather than `EnvConfigV1DTOSchema.omit(...)`
-// so that `.default()` values on leaf fields are not materialized into the
-// override object and merged over real base-config values.
-// ---------------------------------------------------------------------------
 
 export const OverridableConfigV1Schema = z
     .object({

@@ -28,7 +28,6 @@ const isNotFound = (e: unknown): boolean =>
 export class ConfigLoader {
     private readonly logger = new Logger(this.constructor.name);
 
-    /** Memoized promises — resolved once, until `invalidate()` is called. */
     private staticConfig?: Promise<EnvConfigV1DTO>;
     private effectiveConfig?: Promise<EnvConfigV1DTO>;
 
@@ -43,19 +42,11 @@ export class ConfigLoader {
         return path.join(this.getPersistentPath(), 'config-overrides.json');
     }
 
-    /**
-     * Shipped base config. Read from disk at most once.
-     */
     public getStaticConfig(): Promise<EnvConfigV1DTO> {
         this.staticConfig ??= this.readBaseConfig();
         return this.staticConfig;
     }
 
-    /**
-     * User overrides. Always reads the file — never memoized.
-     * Resolves to an empty patch when no override file exists.
-     * Rejects when the file exists but is malformed or fails validation.
-     */
     public async getConfigOverrides(): Promise<OverridableConfigV1> {
         const configPath = this.getConfigOverridesPath();
         this.logger.log(`Attempting to load config overrides from ${configPath}`);
@@ -74,16 +65,11 @@ export class ConfigLoader {
         return OverridableConfigV1Schema.parseAsync(JSON.parse(file));
     }
 
-    /**
-     * Base config merged with the overrides present at first call.
-     * Computed at most once, until `invalidate()` is called.
-     */
     public getEffectiveConfig(): Promise<EnvConfigV1DTO> {
         this.effectiveConfig ??= this.computeEffectiveConfig();
         return this.effectiveConfig;
     }
 
-    /** Drops both caches; the next getter re-reads from disk. */
     public invalidate(): void {
         this.staticConfig = undefined;
         this.effectiveConfig = undefined;
