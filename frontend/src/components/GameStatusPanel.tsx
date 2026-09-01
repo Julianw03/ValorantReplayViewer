@@ -2,7 +2,7 @@ import { useGameLoopState, useProductSession, useSocialPresenceRegistry } from '
 import type { SocialPresence } from '#/schemas/SocialPresence/SocialPresence.schema.ts';
 
 const STATE_META = {
-    MENU: { label: 'Menus', accent: 'bg-muted-foreground/40' },
+    MENUS: { label: 'Menus', accent: 'bg-muted-foreground/40' },
     REPLAY: { label: 'In Replay', accent: 'bg-sky-400/70' },
     PREGAME: { label: 'Agent select', accent: 'bg-amber-400' },
     INGAME: { label: 'In Game', accent: 'bg-emerald-400' },
@@ -28,7 +28,10 @@ export function GameStatusPanel() {
 
     if (!session || !gameLoopState) return null;
 
-    const meta = STATE_META[gameLoopState] ?? STATE_META.MENU;
+    const meta = STATE_META[gameLoopState] ?? {
+        label: 'Unknown',
+        accent: 'bg-muted-foreground/40',
+    };
     const score = gameLoopState === 'INGAME' ? valorantScore(socialPresenceRegistry?.valorant) : null;
     const sub = score ? `${score.ally} – ${score.enemy}` : gameLoopState === 'INGAME' ? 'Round starting' : null;
 
