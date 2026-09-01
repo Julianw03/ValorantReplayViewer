@@ -12,6 +12,7 @@ import type { ReplayMetadataV2, RiotMatchMetadata } from '#/schemas/ReplayFormat
 import type { MinimalVersionInfo } from '#/dto/MinimalVersionInfo.ts';
 import type { StorageStatusDTO } from '#/schemas/StorageStatusDTO.ts';
 import type { ReplayImportRequest } from '#/schemas/upload/ImportReplay.schema.ts';
+import type { SocialPresence } from '#/schemas/SocialPresence/SocialPresence.schema.ts';
 
 export const API_BASE = LocalLinkResolver.resolve('/api/v1', 'http');
 
@@ -103,6 +104,29 @@ async function request<T = void>(path: string, options?: RequestInit): Promise<T
         return response.json() as Promise<T>;
     }
     return undefined as T;
+}
+
+/**
+ * Like `request`, but for endpoints that return a bare `text/plain` / `text/html`
+ * body rather than JSON (e.g. the game-loop state string). Maps 404 to `null`.
+ */
+async function requestText(path: string, options?: RequestInit): Promise<string | null> {
+    const response = await fetch(`${API_BASE}${path}`, options);
+    if (response.status === 404) {
+        return null;
+    }
+    if (!response.ok) {
+        let message = `HTTP ${response.status}`;
+        try {
+            const body = await response.json();
+            message = body.message ?? message;
+        } catch {
+            // ignore parse errors
+        }
+        throw new Error(message);
+    }
+    const text = await response.text();
+    return text.length > 0 ? text : null;
 }
 
 // ---- API ----
@@ -198,5 +222,11 @@ export const api = {
     },
     processControl: {
         shutdown: () => request('/process-control/shutdown', { method: 'POST' }),
+    },
+    gameLoop: {
+        getState: () => requestText('/caching/valorant-loop-session/state'),
+    },
+    socialPresence: {
+        getAll: () => request<Record<string, SocialPresence> | null>('/caching/valorant/multigame-presences'),
     },
 } as const;

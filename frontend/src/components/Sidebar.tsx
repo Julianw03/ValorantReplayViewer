@@ -16,8 +16,10 @@ import {
 } from '@/components/ui/sidebar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
+import { GameStatusPanel } from '@/components/GameStatusPanel';
 import { cn } from '@/lib/utils';
 import { ShutdownButton } from '@/components/ShutdownButton';
+import { Separator } from '@/components/ui/separator.tsx';
 
 const replayNavItems = [
     { title: 'Saved Matches', path: '/saved', icon: HardDrive },
@@ -114,6 +116,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarContent>
             <SidebarRail />
             <SidebarFooter>
+                <GameStatusPanel />
+                <Separator/>
                 <div className="flex items-center justify-between">
                     <ConnectionStatus />
                     <ShutdownButton />

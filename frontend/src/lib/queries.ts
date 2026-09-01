@@ -33,6 +33,8 @@ export const queryKeys = {
     productSessionRegistry: ['productSessionRegistry'] as const,
     effectiveConfig: ['effectiveConfig'] as const,
     configOverrides: ['configOverrides'] as const,
+    gameLoopState: ['gameLoopState'] as const,
+    socialPresenceRegistry: ['socialPresenceRegistry'] as const,
 } as const;
 
 // ---- Riot Client ----
@@ -570,4 +572,55 @@ export function useMatchMetadata(matchId: string, enabled = true) {
         staleTime: Infinity,
         retry: false,
     });
+}
+
+// ---- Game status ----
+
+/**
+ * Current Valorant game-loop state (e.g. 'MENUS', 'REPLAY'). This is a raw
+ * passthrough string sourced from Riot's own session payload — there is no
+ * fixed/known set of values, so it's surfaced as-is rather than mapped to an enum.
+ * Returns `null` until the Riot Client has reported a state yet.
+ */
+export function useGameLoopState() {
+    const existing = useAppStore((s) => s.currentGameLoopState);
+    const setCurrentGameLoopState = useAppStore((s) => s.setCurrentGameLoopState);
+
+    useQuery<string | null>({
+        queryKey: queryKeys.gameLoopState,
+        queryFn: async () => {
+            const state = await api.gameLoop.getState();
+            setCurrentGameLoopState(state);
+            return state;
+        },
+        enabled: existing === null,
+        refetchInterval: (query) => (query.state.data === null ? 3000 : false),
+        staleTime: Infinity,
+        retry: false,
+    });
+
+    return existing;
+}
+
+/**
+ * Social presence for every known Riot product (Valorant, League, TFT, ...)
+ * that currently has one, keyed by product id.
+ */
+export function useSocialPresenceRegistry() {
+    const registry = useAppStore((s) => s.socialPresenceRegistry);
+    const setSocialPresenceRegistry = useAppStore((s) => s.setSocialPresenceRegistry);
+
+    useQuery({
+        queryKey: queryKeys.socialPresenceRegistry,
+        queryFn: async () => {
+            const data = await api.socialPresence.getAll();
+            setSocialPresenceRegistry(data);
+            return data;
+        },
+        enabled: registry === null,
+        staleTime: Infinity,
+        retry: false,
+    });
+
+    return registry;
 }

@@ -14,6 +14,13 @@ export class SimpleMapDataManager<K extends PropertyKey, V> implements IMapDataM
         }
     }
 
+    updateValue(value: Record<K, V>): void {
+        this.state.clear();
+        for (const key in value) {
+            this.state.set(key as K, value[key]);
+        }
+    }
+
     deleteKey(key: K): void {
         this.state.delete(key);
     }

@@ -71,6 +71,10 @@ export class ProductSessionManager implements IMapDataManager<SessionId, Product
         this.manager.updateKeyValueBatch(entries);
     }
 
+    updateValue(entries: Record<SessionId, ProductSessionSession>): void {
+        this.manager.updateValue(entries);
+    }
+
     deleteState(): void {
         this.manager.deleteState();
     }

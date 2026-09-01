@@ -36,4 +36,8 @@ export abstract class OutputMappingMapBehavior<K extends PropertyKey, S, From, T
     updateKeyValueBatch(entries: Record<K, S>): void {
         this.stateManager.updateKeyValueBatch(entries);
     }
+
+    updateValue(value: Record<K, S>): void {
+        this.stateManager.updateValue(value);
+    }
 }

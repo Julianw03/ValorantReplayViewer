@@ -15,6 +15,7 @@ import { ValorantVersionInfoManager } from '@/modules/Valorant/ValorantVersionIn
 import { ProductSessionManager } from '@/modules/ProductSessionModule/ProductSessionManager';
 import { ReplayIOManager } from '@/modules/Valorant/ValorantReplays/storage/ReplayIOManager';
 import { ReplayInjectManagerV2 } from '@/modules/Valorant/ValorantReplays/injector/ReplayInjectManagerV2';
+import { SocialPresenceManager } from '@/modules/SocialPresence/SocialPresenceManager';
 
 @WebSocketGateway({})
 @Injectable()
@@ -36,6 +37,7 @@ export class WSEventPublisher
         ValorantGameLoopManager.name,
         ValorantGameSessionManager.name,
         ValorantMatchStatsManager.name,
+        SocialPresenceManager.name,
         ReplayInjectManagerV2.name,
         ValorantVersionInfoManager.name,
         ProductSessionManager.name,

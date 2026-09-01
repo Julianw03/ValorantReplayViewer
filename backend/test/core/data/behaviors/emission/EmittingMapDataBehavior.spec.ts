@@ -117,6 +117,34 @@ describe('EmittingMapDataBehavior', () => {
         });
     });
 
+    describe('updateValue', () => {
+        it('publishes a StateUpdated event with the resulting view', () => {
+            const { behavior, publish } = makeSetup();
+            behavior.updateValue({ a: '1', b: '2' });
+            expect(publish).toHaveBeenCalledOnce();
+            const event = publish.mock.calls[0][0];
+            expect(event.type).toBe(EventType.StateUpdated);
+            expect(event.payload.value).toEqual({ a: '1', b: '2' });
+        });
+
+        it('does not publish when the new record deep-equals the current view', () => {
+            const { behavior, publish } = makeSetup();
+            behavior.updateValue({ a: '1' });
+            publish.mockClear();
+            behavior.updateValue({ a: '1' });
+            expect(publish).not.toHaveBeenCalled();
+        });
+
+        it('publishes a null payload when replaced with an empty record', () => {
+            const { behavior, publish } = makeSetup();
+            behavior.updateValue({ a: '1' });
+            publish.mockClear();
+            behavior.updateValue({});
+            expect(publish).toHaveBeenCalledOnce();
+            expect(publish.mock.calls[0][0].payload.value).toBeNull();
+        });
+    });
+
     describe('getKeyView', () => {
         it('delegates to the inner manager', () => {
             const { inner, behavior } = makeSetup();

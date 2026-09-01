@@ -19,7 +19,7 @@ export class ShutdownController {
         description: 'The actual shutdown happens after a certain delay to allow this request to be fulfilled.',
     })
     @ApiResponse({
-        status: HttpStatus.CREATED,
+        status: HttpStatus.ACCEPTED,
         description: 'Application will be shutdown shortly.',
     })
     @HttpCode(HttpStatus.ACCEPTED.valueOf())

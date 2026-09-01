@@ -1,6 +1,12 @@
 import { SimpleObjectDataManager } from '@/core/data/SimpleObjectDataManager';
 import { IObjectDataManager } from '@/core/data/interfaces/IObjectDataManager';
+import { MappingError } from '@/core/data/behaviors/viewMapping/MappingError';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const rejectingLength = (s: string): number => {
+    if (s === 'bad') throw new MappingError('rejected');
+    return s.length;
+};
 
 type ObjectBehaviorFactory = (
     inner: SimpleObjectDataManager<string>,
@@ -43,5 +49,42 @@ export function runObjectMappingBehaviorSuite(factory: ObjectBehaviorFactory): v
     it('does not call the mapping function when state is null', () => {
         behavior.getView();
         expect(mappingFn).not.toHaveBeenCalled();
+    });
+
+    describe('mapping failure', () => {
+        it('keeps the previous value when a mapping update throws MappingError', () => {
+            behavior.updateValue('ok');
+            mappingFn.mockImplementation(rejectingLength);
+
+            behavior.updateValue('bad');
+
+            expect(behavior.getView()).toBe(2);
+        });
+
+        it('does not set state when the first mapping throws MappingError', () => {
+            mappingFn.mockImplementation(rejectingLength);
+
+            behavior.updateValue('bad');
+
+            expect(behavior.getView()).toBeNull();
+        });
+
+        it('propagates a non-MappingError thrown by the mapping function', () => {
+            mappingFn.mockImplementation((s: string) => {
+                if (s === 'boom') throw new Error('unexpected');
+                return s.length;
+            });
+
+            expect(() => behavior.updateValue('boom')).toThrow('unexpected');
+        });
+
+        it('applies a later successful write after a rejected one', () => {
+            mappingFn.mockImplementation(rejectingLength);
+
+            behavior.updateValue('bad');
+            behavior.updateValue('good');
+
+            expect(behavior.getView()).toBe(4);
+        });
     });
 }

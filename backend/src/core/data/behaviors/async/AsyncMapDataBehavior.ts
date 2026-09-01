@@ -35,7 +35,7 @@ export class AsyncMapDataBehavior<K extends PropertyKey, V, E extends Error> imp
             })
             .catch(e => {
                 if (this.resetMarker !== currentMarker) return;
-                this.externalRepresentation.updateKeyValue(key, AsyncResult.failure(e as E));
+                this.externalRepresentation.updateKeyValue(key, AsyncResult.failure(e?.constructor?.name as E));
             });
 
         return true;
