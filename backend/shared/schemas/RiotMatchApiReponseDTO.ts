@@ -222,7 +222,7 @@ export const RiotMatchApiResponseDTOSchema = z.object({
     coaches: z.array(z.any()).optional().nullable(),
     teams: z.array(RiotMatchTeamSchema).optional().nullable(),
     roundResults: z.array(RoundResultSchema),
-    kills: z.array(RoundAnnotatedKillSchema),
+    kills: z.array(RoundAnnotatedKillSchema).nullable(),
 });
 
 export type RiotMatchApiResponseDTO = z.infer<
