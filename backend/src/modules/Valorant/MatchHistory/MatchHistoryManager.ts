@@ -3,14 +3,13 @@ import { RiotValorantAPIManager } from '@/integrations/riot/RiotValorantAPIManag
 import { ValorantMatchStatsManager } from '@/modules/Valorant/ValorantMatchStatsModule/ValorantMatchStatsManager';
 import { DataDeletable } from '@/core/data/interfaces/capabilities/DataDeletable';
 import { SimpleEventBus } from '@/core/events/SimpleEventBus';
-import { distinctUntilChanged, distinctUntilKeyChanged, filter, map, Subscription } from 'rxjs';
+import { distinctUntilChanged, filter, map, Subscription } from 'rxjs';
 import { onSource } from '@/core/events/adapters/rxjsAdapters';
-import { ValorantGameSessionManager } from '@/modules/Valorant/ValorantGameSessionModule/ValorantGameSessionManager';
 import { EventType } from '@/core/events/EventTypes';
 import { KeyValueUpdatedEvent, StateUpdatedEvent } from '@/core/events/BasicEvent';
 import { GUID } from '#/schemas/GUIDSchema';
-import { MatchStatus, MatchStatusSchema } from '@/modules/Valorant/ValorantGameSessionModule/MatchStatus.schema';
 import { RiotMatchMetadata } from '#/schemas/ReplayFormatV2.schema';
+import { AsyncResult } from '#/utils/AsyncResult';
 import { PlayerUuidDTO } from '#/schemas/PlayerUuid.schema';
 import { AccountPuuidManager } from '@/modules/Account/AccountPuuidModule/AccountPuuidManager';
 
@@ -22,7 +21,7 @@ export class MatchHistoryManager implements DataDeletable, OnModuleInit, OnModul
 
     private loadingMore: Promise<void> | null = null;
     private remoteMatchHistoryEndReached = false;
-    private matchFinishedSubscription: Subscription;
+    private matchStatsSubscription: Subscription;
     private userSubscription: Subscription;
 
     constructor(
@@ -34,7 +33,7 @@ export class MatchHistoryManager implements DataDeletable, OnModuleInit, OnModul
 
     onModuleDestroy() {
         this.userSubscription?.unsubscribe();
-        this.matchFinishedSubscription?.unsubscribe();
+        this.matchStatsSubscription?.unsubscribe();
     }
 
     onModuleInit() {
@@ -42,27 +41,21 @@ export class MatchHistoryManager implements DataDeletable, OnModuleInit, OnModul
             .pipe(
                 filter((it) => it.type === EventType.StateUpdated),
                 map(it => (it as StateUpdatedEvent<PlayerUuidDTO>).payload.value?.uuid),
-                distinctUntilChanged()
+                distinctUntilChanged(),
             )
             .subscribe((it) => {
-                this.deleteState()
-            })
-        this.matchFinishedSubscription = onSource(this.eventBus, ValorantGameSessionManager.name)
+                this.deleteState();
+            });
+        this.matchStatsSubscription = onSource(this.eventBus, ValorantMatchStatsManager.name)
             .subscribe((it) => {
-                    switch (it.type) {
-                        case EventType.KeyValueUpdated: {
-                            const typed = it as KeyValueUpdatedEvent<GUID, MatchStatus>;
-                            if (typed.payload.value !== MatchStatusSchema.enum.ENDED) return;
-                            this.logger.debug(`Match ${typed.payload.key} has ended, prepending to match history`);
-                            /**
-                             * This is correct under the assumption that a new match that ended is, well
-                             * always new and therefore prepending this should be valid.
-                             * */
-                            this.prepend(typed.payload.key);
-                        }
-                    }
-                },
-            );
+                if (it.type !== EventType.KeyValueUpdated) return;
+
+                const typed = it as KeyValueUpdatedEvent<GUID, AsyncResult<RiotMatchMetadata, Error>>;
+                const result = typed.payload.value;
+                if (!result?.isSuccess()) return;
+
+                this.onMatchStatsAvailable(typed.payload.key, result.data);
+            });
     }
 
 
@@ -73,17 +66,25 @@ export class MatchHistoryManager implements DataDeletable, OnModuleInit, OnModul
         this.remoteMatchHistoryEndReached = false;
     }
 
-    private prepend(matchId: GUID): void {
+    private onMatchStatsAvailable(matchId: GUID, metadata: RiotMatchMetadata): void {
         if (this.knownMatchIds.has(matchId)) {
-            this.logger.debug(`Prepend for ${matchId} cancelled: Key already registered.`);
+            return;
+        }
+
+        if (!this.shouldAppear(metadata)) {
+            this.logger.debug(`Match ${matchId} filtered out, wont appear in match history`);
             return;
         }
 
         this.knownMatchIds.add(matchId);
         this.orderedMatchIds.unshift(matchId);
+        this.logger.debug(`Match ${matchId} stats available, prepended to match history`);
+    }
 
-        this.logger.debug(`Match ${matchId} has been registered. Match data is being requested...`);
-        this.stats.requestMatchFetch(matchId);
+    private shouldAppear(_metadata: RiotMatchMetadata): boolean {
+        // We dont want Practice matches
+        if (_metadata.matchMetadata.matchInfo.provisioningFlowID === "ShootingRange") return false;
+        return true;
     }
 
     private async loadMore(count = 20): Promise<void> {
@@ -170,7 +171,7 @@ export class MatchHistoryManager implements DataDeletable, OnModuleInit, OnModul
     public async getMatchDataAfter(
         afterMatchId: GUID | null,
         limit = 10,
-    ): Promise<Record<GUID, RiotMatchMetadata>> {
+    ): Promise<Record<GUID, RiotMatchMetadata | null>> {
         const ids = await this.getMatchIdsAfter(afterMatchId, limit);
 
         return this.stats.getBestEffortBatchedResult(
@@ -197,7 +198,7 @@ export class MatchHistoryManager implements DataDeletable, OnModuleInit, OnModul
     public async getMatchDataBefore(
         beforeMatchId: GUID,
         limit = 10,
-    ): Promise<Record<GUID, RiotMatchMetadata>> {
+    ): Promise<Record<GUID, RiotMatchMetadata | null>> {
         const ids = await this.getMatchIdsBefore(
             beforeMatchId,
             limit,

@@ -44,7 +44,7 @@ export class MatchHistoryController {
             query.after ?? null,
             query.limit,
         );
-        return Object.values(data).sort((a, b) => b.matchMetadata.matchInfo.gameStartMillis - a.matchMetadata.matchInfo.gameStartMillis);
+        return Object.values(data).sort((a, b) => (b?.matchMetadata?.matchInfo?.gameStartMillis ?? 0) - (a?.matchMetadata?.matchInfo?.gameStartMillis ?? 0));
     }
 
 
@@ -67,6 +67,6 @@ export class MatchHistoryController {
             query.limit,
         );
 
-        return Object.values(data).sort((a, b) => b.matchMetadata.matchInfo.gameStartMillis - a.matchMetadata.matchInfo.gameStartMillis);
+        return Object.values(data).sort((a, b) => (b?.matchMetadata?.matchInfo?.gameStartMillis ?? 0) - (a?.matchMetadata?.matchInfo?.gameStartMillis ?? 0));
     }
 }

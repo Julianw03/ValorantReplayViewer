@@ -71,9 +71,14 @@ export class ValorantMatchStatsManager
         );
         const aliasMap = await this.playerAliasManager.getBestEffortBatchedResult(puuids, 5_000);
 
-        this.logger.debug(
-            `Received match data for match ID ${matchId}`,
-        );
+        const failedEntries = Object.entries(aliasMap).filter((key, value) => value === null);
+
+        if (failedEntries) {
+            this.logger.warn(
+                `Failed alias lookups for match ID ${matchId}: ${failedEntries.map(([key, value]) => key).join(', ')}`,
+            );
+        }
+
 
         return {
             matchMetadata: result,

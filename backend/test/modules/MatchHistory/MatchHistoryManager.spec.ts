@@ -6,7 +6,7 @@ import { ValorantMatchStatsManager } from '@/modules/Valorant/ValorantMatchStats
 import { SimpleEventBus } from '@/core/events/SimpleEventBus';
 import { EventType } from '@/core/events/EventTypes';
 import * as rxjsAdapters from '@/core/events/adapters/rxjsAdapters';
-import { MatchStatusSchema } from '@/modules/Valorant/ValorantGameSessionModule/MatchStatus.schema';
+import { AsyncResult } from '#/utils/AsyncResult';
 
 // We mock the adapter so we can push events into a Subject we control,
 // instead of needing a real SimpleEventBus wiring.
@@ -14,6 +14,24 @@ vi.mock('@/core/events/adapters/rxjsAdapters');
 
 function makeMatch(id: string, gameStartTime: number) {
     return { MatchID: id, GameStartTime: gameStartTime } as any;
+}
+
+function statsEvent(id: string, value: unknown) {
+    return {
+        type: EventType.KeyValueUpdated,
+        source: 'ValorantMatchStatsManager',
+        payload: { key: id, action: 'CREATED', value },
+    };
+}
+
+function statsSuccess(id: string, gameStartMillis = 0) {
+    return statsEvent(
+        id,
+        AsyncResult.success({
+            matchMetadata: { matchInfo: { gameStartMillis } },
+            puuidResolver: {},
+        }),
+    );
 }
 
 describe('MatchHistoryManager', () => {
@@ -54,66 +72,66 @@ describe('MatchHistoryManager', () => {
     });
 
     // ---------------------------------------------------------------------
-    // prepend (via event subscription)
+    // match stats emissions -> match history (via event subscription)
     // ---------------------------------------------------------------------
-    describe('event-driven prepend', () => {
-        it('prepends a match and requests its data when status is ENDED', async () => {
-            eventSubject.next({
-                type: EventType.KeyValueUpdated,
-                payload: { key: 'match-1', value: MatchStatusSchema.enum.ENDED },
-            });
+    describe('match stats drive match history', () => {
+        it('adds a match to history once its stats become available', async () => {
+            eventSubject.next(statsSuccess('match-1'));
 
             const ids = await manager.getMatchIdsAfter(null, 10);
             expect(ids).toEqual(['match-1']);
-            expect(stats.requestMatchFetch).toHaveBeenCalledWith('match-1');
         });
 
-        it('ignores KeyValueUpdated events whose value is not ENDED', async () => {
-            eventSubject.next({
-                type: EventType.KeyValueUpdated,
-                payload: { key: 'match-1', value: MatchStatusSchema.enum.IN_PROGRESS },
-            });
+        it('does not add a match while its stats are still pending', async () => {
+            eventSubject.next(statsEvent('match-1', AsyncResult.pending()));
 
-            riot.getMatchHistory.mockResolvedValue([]);
             const ids = await manager.getMatchIdsAfter(null, 10);
             expect(ids).toEqual([]);
-            expect(stats.requestMatchFetch).not.toHaveBeenCalled();
         });
 
-        it('ignores events of a different type entirely', async () => {
+        it('does not add a match whose stats fetch failed', async () => {
+            eventSubject.next(statsEvent('match-1', AsyncResult.failure(new Error('boom'))));
+
+            const ids = await manager.getMatchIdsAfter(null, 10);
+            expect(ids).toEqual([]);
+        });
+
+        it('ignores events that are not key-value updates', async () => {
             eventSubject.next({ type: 'SomethingElse', payload: {} });
-            expect(stats.requestMatchFetch).not.toHaveBeenCalled();
+
+            const ids = await manager.getMatchIdsAfter(null, 10);
+            expect(ids).toEqual([]);
         });
 
-        it('ignores a duplicate match id (no double insert, no double fetch)', async () => {
-            const evt = {
-                type: EventType.KeyValueUpdated,
-                payload: { key: 'match-1', value: MatchStatusSchema.enum.ENDED },
-            };
-            eventSubject.next(evt);
-            eventSubject.next(evt);
+        it('adds a match at most once even if its stats are emitted repeatedly', async () => {
+            eventSubject.next(statsSuccess('match-1'));
+            eventSubject.next(statsSuccess('match-1'));
 
             const ids = await manager.getMatchIdsAfter(null, 10);
             expect(ids).toEqual(['match-1']);
-            expect(stats.requestMatchFetch).toHaveBeenCalledTimes(1);
         });
 
-        it('newly-ended matches are placed before previously loaded ones', async () => {
+        it('places a newly-available match before matches already loaded from history', async () => {
             riot.getMatchHistory.mockResolvedValue([makeMatch('old-1', 100)]);
             await manager.getMatchIdsAfter(null, 10); // loads old-1
 
-            eventSubject.next({
-                type: EventType.KeyValueUpdated,
-                payload: { key: 'new-1', value: MatchStatusSchema.enum.ENDED },
-            });
+            eventSubject.next(statsSuccess('new-1'));
 
             const ids = await manager.getMatchIdsAfter(null, 10);
             expect(ids).toEqual(['new-1', 'old-1']);
         });
 
-        it('keeps a live-prepended match at the front when it arrives mid-flight of a loadMore fetch', async () => {
-            // Control exactly when the Riot fetch resolves so we can fire the
-            // "match ended" event while the fetch is still pending.
+        it('does not reorder a match already loaded from history when its stats arrive', async () => {
+            riot.getMatchHistory.mockResolvedValue([makeMatch('a', 300), makeMatch('b', 200)]);
+            await manager.getMatchIdsAfter(null, 10); // loads a, b
+
+            eventSubject.next(statsSuccess('b'));
+
+            const ids = await manager.getMatchIdsAfter(null, 10);
+            expect(ids).toEqual(['a', 'b']);
+        });
+
+        it('keeps a newly-available match ahead of a history page still being fetched', async () => {
             let resolvePage: (v: any) => void;
             riot.getMatchHistory.mockReturnValue(
                 new Promise((resolve) => {
@@ -123,25 +141,18 @@ describe('MatchHistoryManager', () => {
 
             const pending = manager.getMatchIdsAfter(null, 10); // triggers loadMore, now in flight
 
-            // The live match ends *while* the historical fetch is still pending.
-            eventSubject.next({
-                type: EventType.KeyValueUpdated,
-                payload: { key: 'live-1', value: MatchStatusSchema.enum.ENDED },
-            });
+            // The finished match's stats land *while* the historical fetch is still pending.
+            eventSubject.next(statsSuccess('live-1'));
 
-            // The pending historical page resolves afterward.
             resolvePage!([makeMatch('hist-1', 200), makeMatch('hist-2', 100)]);
             const ids = await pending;
 
-            // The live match must stay at the front; the historical page
+            // The newly-available match stays at the front; the historical page
             // (sorted desc by GameStartTime) is appended after it.
             expect(ids).toEqual(['live-1', 'hist-1', 'hist-2']);
-            expect(stats.requestMatchFetch).toHaveBeenCalledWith('live-1');
-            expect(stats.requestMatchFetch).toHaveBeenCalledWith('hist-1');
-            expect(stats.requestMatchFetch).toHaveBeenCalledWith('hist-2');
         });
 
-        it('does not double-insert when the in-flight page eventually also contains the live-prepended match', async () => {
+        it('does not double-insert when a history page later also contains the newly-available match', async () => {
             let resolvePage: (v: any) => void;
             riot.getMatchHistory.mockReturnValue(
                 new Promise((resolve) => {
@@ -151,20 +162,14 @@ describe('MatchHistoryManager', () => {
 
             const pending = manager.getMatchIdsAfter(null, 10);
 
-            eventSubject.next({
-                type: EventType.KeyValueUpdated,
-                payload: { key: 'live-1', value: MatchStatusSchema.enum.ENDED },
-            });
+            eventSubject.next(statsSuccess('live-1'));
 
-            // Simulate Riot's own paginated history having since caught up and
-            // now also reporting the just-ended match.
+            // Riot's own paginated history has since caught up and now also
+            // reports the just-finished match.
             resolvePage!([makeMatch('live-1', 500), makeMatch('hist-1', 100)]);
             const ids = await pending;
 
             expect(ids).toEqual(['live-1', 'hist-1']);
-            expect(stats.requestMatchFetch).toHaveBeenCalledTimes(2); // once for live-1 (via prepend), once for hist-1
-            expect(stats.requestMatchFetch).toHaveBeenCalledWith('live-1');
-            expect(stats.requestMatchFetch).toHaveBeenCalledWith('hist-1');
         });
     });
 
@@ -199,23 +204,15 @@ describe('MatchHistoryManager', () => {
             expect(riot.getMatchHistory).toHaveBeenCalledWith(0, 20);
         });
 
-        it('allows a previously-seen match id to be re-prepended after a reset', async () => {
-            eventSubject.next({
-                type: EventType.KeyValueUpdated,
-                payload: { key: 'match-1', value: MatchStatusSchema.enum.ENDED },
-            });
-            expect(stats.requestMatchFetch).toHaveBeenCalledTimes(1);
+        it('re-adds a previously-seen match after a reset when its stats are emitted again', async () => {
+            eventSubject.next(statsSuccess('match-1'));
+            expect(await manager.getMatchIdsAfter(null, 10)).toEqual(['match-1']);
 
             pushUuid('user-2');
+            expect(await manager.getMatchIdsAfter(null, 10)).toEqual([]);
 
-            eventSubject.next({
-                type: EventType.KeyValueUpdated,
-                payload: { key: 'match-1', value: MatchStatusSchema.enum.ENDED },
-            });
-
-            const ids = await manager.getMatchIdsAfter(null, 10);
-            expect(ids).toEqual(['match-1']);
-            expect(stats.requestMatchFetch).toHaveBeenCalledTimes(2);
+            eventSubject.next(statsSuccess('match-1'));
+            expect(await manager.getMatchIdsAfter(null, 10)).toEqual(['match-1']);
         });
 
         it('does not reset state when the same uuid is emitted again', async () => {

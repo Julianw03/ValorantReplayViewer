@@ -125,7 +125,7 @@ export class ReplayInjectManagerV2
         const matches = Object.values(history);
 
         const validPlaceholder = matches.find(
-            (entry) => entry.matchMetadata.matchInfo.isReplayRecorded,
+            (entry) => entry?.matchMetadata?.matchInfo?.isReplayRecorded ?? false,
         );
 
         if (!validPlaceholder) {
