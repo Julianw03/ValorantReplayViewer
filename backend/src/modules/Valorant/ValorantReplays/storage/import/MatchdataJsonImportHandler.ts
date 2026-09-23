@@ -3,7 +3,7 @@ import { ImportData, ImportHandler } from '@/modules/Valorant/ValorantReplays/st
 import { ReplayFileTypeSchema, ReplayImportRequest } from '#/schemas/upload/ImportReplay.schema';
 import { RiotMatchApiResponseDTOSchema } from '#/schemas/RiotMatchApiReponseDTO';
 import { CURRENT_REPLAY_FORMAT_VERSION, ReplayMetadataV2 } from '#/schemas/ReplayFormatV2.schema';
-import { InvalidReplayArchiveError } from '@/modules/Valorant/ValorantReplays/storage/ReplayIOManager';
+import { InvalidReplayArchiveError } from '@/modules/Valorant/ValorantReplays/storage/ReplayStorageErrors';
 import { PuuidToPlayerAliasManager } from '@/modules/PuuidToPlayerAliasModule/PuuidToPlayerAliasManager';
 import { PlayerAliasDTO } from '#/schemas/PlayerAlias.schema';
 import { GUID } from '#/schemas/GUIDSchema';

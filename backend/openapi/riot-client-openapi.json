@@ -2,8 +2,8 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Riot Client API",
-    "version": "136.0.3.4787",
-    "description": "Created with SDK - Version 26.7.1.0"
+    "version": "138.0.1.4874",
+    "description": "Created with SDK - Version 26.8.1.0"
   },
   "servers": [
     {
@@ -6844,7 +6844,23 @@
           "Plugin riot-client-lifecycle"
         ],
         "description": "Sets the product and patchline to launch. ",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "discordJoinLaunch",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "clickWallMs",
+            "schema": {
+              "type": "number",
+              "format": "int64"
+            }
+          }
+        ],
         "responses": {
           "401": {
             "$ref": "#/components/responses/UnauthorizedError"
@@ -13323,6 +13339,57 @@
         }
       }
     },
+    "/integration-test/v1/discord/observed-status-changes": {
+      "get": {
+        "tags": [
+          "Plugin integration-test"
+        ],
+        "description": "[FOR TESTING ONLY] Returns Discord status changes observed via the Discord provider callback. ",
+        "parameters": [],
+        "responses": {
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "2XX": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integration-test/v1/discord/status": {
+      "get": {
+        "tags": [
+          "Plugin integration-test"
+        ],
+        "description": "[FOR TESTING ONLY] Returns the current Discord client status. ",
+        "parameters": [],
+        "responses": {
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "2XX": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/integration-test/v1/echo/{message}": {
       "get": {
         "tags": [
@@ -16623,6 +16690,45 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/player-session-lifecycle/v1/require-recoverable-account": {
+      "get": {
+        "tags": [
+          "Plugin player-session-lifecycle"
+        ],
+        "description": "Get the current require-recoverable-account status and trigger reason. ",
+        "parameters": [],
+        "responses": {
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "2XX": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerSessionLifecycleRequireRecoverableAccountStatus"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Plugin player-session-lifecycle"
+        ],
+        "description": "Inform the SDK that the current player should be prompted to make their account recoverable when possible. On MobileFRE this means the player should be prompted to make their account recoverable. On ConsoleFRE this means the player should be prompted to provide a missing email_address. \n [Help] Set a requirement for that current player should be prompted to address any issues with their account that prevent it from being recoverable. On MobileFRE this currently means that the player's account should either have the ability to authenticate with username/password (ie. Riot Identity) or with an acceptable federated auth provider (ex. Google, Facebook, etc.). On ConsoleFRE this currently means that the player should be prompted to provide a missing email_address through the healup flow. Forcing recoverable accounts is desirable when the player has spent money or a significant amount of time, so accidental account loss would be very undesirable.",
+        "parameters": [],
+        "responses": {
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "2XX": {
+            "description": "Returns nothing"
           }
         }
       }
@@ -23679,6 +23785,30 @@
         }
       }
     },
+    "/voice-chat/v1/license-status/voicemod": {
+      "get": {
+        "tags": [
+          "Plugin voice-chat"
+        ],
+        "description": "Get the current VoiceMod license status ",
+        "parameters": [],
+        "responses": {
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "2XX": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceChatVoiceModLicenseStatusResource"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/voice-chat/v1/push-to-talk": {
       "get": {
         "tags": [
@@ -23744,6 +23874,42 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VoiceChatPluginStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/voice-chat/v1/voice-fonts/{productName}": {
+      "get": {
+        "tags": [
+          "Plugin voice-chat"
+        ],
+        "description": "Get cached available voice fonts and localized display names for a product ",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "productName",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "2XX": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VoiceChatVoiceFontResource"
+                  }
                 }
               }
             }
@@ -26044,7 +26210,7 @@
         "tags": [
           "Plugin ga-warning"
         ],
-        "description": "Simulate sending a game-agnostic warning message to this player with a specific category. Endpoint not available in public builds. \n [Help] \n**Data**\n\n* `category`: The category is a key used to create the localized message for the player. As an example, `INAPPROPRIATE_TEXT` is the category\nsent when a player was flagged for inappropriate chat. If the category is unrecognized, a fallback message will be used.\n",
+        "description": "Simulate sending a game-agnostic warning message to this player with a specific category. Endpoint not available in public builds. \n [Help] \n**Data**\n\n* `category`: The category is a key used to create the localized message for the player. As an example, `INAPPROPRIATE_TEXT` is the category\nsent when a player was flagged for inappropriate chat. If the category-specific body is unavailable, the generic fallback body is used when translate returns it.\n",
         "parameters": [
           {
             "in": "path",
@@ -26269,6 +26435,23 @@
         }
       }
     },
+    "/integration-test/v1/discord/observe-status-changes": {
+      "post": {
+        "tags": [
+          "Plugin integration-test"
+        ],
+        "description": "[FOR TESTING ONLY] Registers a Discord status observer on the Discord provider. ",
+        "parameters": [],
+        "responses": {
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "2XX": {
+            "description": "Returns nothing"
+          }
+        }
+      }
+    },
     "/integration-test/v1/external-request/async": {
       "post": {
         "tags": [
@@ -26289,6 +26472,32 @@
                 }
               }
             }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntegrationTestV1ExternalRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integration-test/v1/external-request/detached": {
+      "post": {
+        "tags": [
+          "Plugin integration-test"
+        ],
+        "description": "[FOR TESTING ONLY] Test endpoint to dispatch an external HTTP request without waiting for its result, so the request (and any retry it schedules) is still in flight when the endpoint returns ",
+        "parameters": [],
+        "responses": {
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "2XX": {
+            "description": "Returns nothing"
           }
         },
         "requestBody": {
@@ -28658,23 +28867,6 @@
                 "$ref": "#/components/schemas/PlayerSessionLifecycleRequireAccountHealupRequest"
               }
             }
-          }
-        }
-      }
-    },
-    "/player-session-lifecycle/v1/require-recoverable-account": {
-      "post": {
-        "tags": [
-          "Plugin player-session-lifecycle"
-        ],
-        "description": "Inform the SDK that the current player should be prompted to make their account recoverable when possible. On MobileFRE this means the player should be prompted to make their account recoverable. On ConsoleFRE this means the player should be prompted to provide a missing email_address. \n [Help] Set a requirement for that current player should be prompted to address any issues with their account that prevent it from being recoverable. On MobileFRE this currently means that the player's account should either have the ability to authenticate with username/password (ie. Riot Identity) or with an acceptable federated auth provider (ex. Google, Facebook, etc.). On ConsoleFRE this currently means that the player should be prompted to provide a missing email_address through the healup flow. Forcing recoverable accounts is desirable when the player has spent money or a significant amount of time, so accidental account loss would be very undesirable.",
-        "parameters": [],
-        "responses": {
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "2XX": {
-            "description": "Returns nothing"
           }
         }
       }
@@ -33046,6 +33238,32 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/VoiceChatDebugCSRFileWritingRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/voice-chat/v1/initialize-dependency/voicemod": {
+      "post": {
+        "tags": [
+          "Plugin voice-chat"
+        ],
+        "description": "Initialize the VoiceMod SDK used by voice-chat ",
+        "parameters": [],
+        "responses": {
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "2XX": {
+            "description": "Returns nothing"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoiceChatInitializeVoiceModResource"
               }
             }
           }
@@ -38378,6 +38596,9 @@
           },
           "patchlineId": {
             "type": "string"
+          },
+          "directLaunch": {
+            "type": "boolean"
           }
         }
       },
@@ -38389,6 +38610,9 @@
           },
           "patchlineId": {
             "type": "string"
+          },
+          "directLaunch": {
+            "type": "boolean"
           }
         }
       },
@@ -38730,6 +38954,15 @@
           },
           "overrideReleaseId": {
             "type": "string"
+          },
+          "artifactType": {
+            "type": "string"
+          },
+          "releases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArtifactReleaseOption"
+            }
           }
         }
       },
@@ -38741,6 +38974,23 @@
             "items": {
               "$ref": "#/components/schemas/ArtifactReleaseIds"
             }
+          }
+        }
+      },
+      "ArtifactReleaseOption": {
+        "type": "object",
+        "properties": {
+          "releaseId": {
+            "type": "string"
+          },
+          "compatVersionId": {
+            "type": "string"
+          },
+          "artifactId": {
+            "type": "string"
+          },
+          "artifactVersionId": {
+            "type": "string"
           }
         }
       },
@@ -42032,6 +42282,10 @@
       "ChatUpdateChatSettings": {
         "type": "object",
         "properties": {
+          "generation": {
+            "type": "number",
+            "format": "int64"
+          },
           "settings": {
             "type": "object",
             "additionalProperties": {
@@ -44816,11 +45070,24 @@
           }
         }
       },
+      "ChatboxSocialPlatformUILinkDiscordError": {
+        "type": "string",
+        "enum": [
+          "account_already_linked",
+          "email_not_allowed",
+          "rate_limited",
+          "disabled",
+          "unknown"
+        ]
+      },
       "ChatboxSocialPlatformUILinkDiscordStatus": {
         "type": "object",
         "properties": {
           "available": {
             "type": "boolean"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ChatboxSocialPlatformUILinkDiscordError"
           },
           "linked": {
             "type": "boolean"
@@ -47606,6 +47873,9 @@
             "type": "string"
           },
           "id": {
+            "type": "string"
+          },
+          "patchlineId": {
             "type": "string"
           },
           "relative_path": {
@@ -50623,11 +50893,24 @@
           }
         }
       },
+      "FFPlatformUILinkDiscordError": {
+        "type": "string",
+        "enum": [
+          "account_already_linked",
+          "email_not_allowed",
+          "rate_limited",
+          "disabled",
+          "unknown"
+        ]
+      },
       "FFPlatformUILinkDiscordStatus": {
         "type": "object",
         "properties": {
           "available": {
             "type": "boolean"
+          },
+          "error": {
+            "$ref": "#/components/schemas/FFPlatformUILinkDiscordError"
           },
           "linked": {
             "type": "boolean"
@@ -52963,6 +53246,57 @@
           }
         }
       },
+      "GaRestrictionTranslateRequest": {
+        "type": "object",
+        "properties": {
+          "blocking": {
+            "type": "boolean"
+          },
+          "keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "locale": {
+            "type": "string"
+          },
+          "patchline": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "string"
+          }
+        }
+      },
+      "GaRestrictionTranslateResponse": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GaRestrictionTranslateResult"
+            }
+          }
+        }
+      },
+      "GaRestrictionTranslateResult": {
+        "type": "object",
+        "properties": {
+          "found": {
+            "type": "boolean"
+          },
+          "key": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
       "GaRestrictionUpdateMailStateRequest": {
         "type": "object",
         "properties": {
@@ -54387,6 +54721,57 @@
           },
           "hasToken": {
             "type": "boolean"
+          }
+        }
+      },
+      "GaWarningTranslateRequest": {
+        "type": "object",
+        "properties": {
+          "blocking": {
+            "type": "boolean"
+          },
+          "keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "locale": {
+            "type": "string"
+          },
+          "patchline": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "string"
+          }
+        }
+      },
+      "GaWarningTranslateResponse": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GaWarningTranslateResult"
+            }
+          }
+        }
+      },
+      "GaWarningTranslateResult": {
+        "type": "object",
+        "properties": {
+          "found": {
+            "type": "boolean"
+          },
+          "key": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
           }
         }
       },
@@ -58842,7 +59227,8 @@
         "type": "object",
         "properties": {
           "channel": {
-            "type": "string"
+            "type": "number",
+            "format": "int32"
           },
           "ext": {
             "type": "string"
@@ -58911,8 +59297,15 @@
           "openid": {
             "type": "string"
           },
+          "rsoPlatformId": {
+            "type": "string"
+          },
           "token": {
             "type": "string"
+          },
+          "zoneId": {
+            "type": "number",
+            "format": "int32"
           }
         }
       },
@@ -67703,8 +68096,11 @@
           "PendingEulaData",
           "PendingEulaAcceptance",
           "PendingGamepassStatus",
+          "PendingUserInfoData",
           "PendingRiotIDData",
           "PendingRiotID",
+          "PendingPersistentFlagsData",
+          "PendingRecoverableAccount",
           "PendingProductContext",
           "PendingProductContextInitialization",
           "PendingVNGProfileData",
@@ -67717,9 +68113,6 @@
           "ProductAgeRestricted",
           "PendingAccountEntitlementData",
           "MissingAccountEntitlement",
-          "PendingUserInfoData",
-          "PendingPersistentFlagsData",
-          "PendingRecoverableAccount",
           "PendingAffinityData",
           "PendingLoginQueueData",
           "PendingLoginQueueBypass",
@@ -68191,6 +68584,14 @@
         }
       },
       "PlatformUiRequireRecoverableAccountRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "PlatformUiRequireRecoverableAccountStatus": {
         "type": "object",
         "properties": {
           "reason": {
@@ -74166,6 +74567,57 @@
           }
         }
       },
+      "PlayerReportingTranslateRequest": {
+        "type": "object",
+        "properties": {
+          "blocking": {
+            "type": "boolean"
+          },
+          "keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "locale": {
+            "type": "string"
+          },
+          "patchline": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "string"
+          }
+        }
+      },
+      "PlayerReportingTranslateResponse": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlayerReportingTranslateResult"
+            }
+          }
+        }
+      },
+      "PlayerReportingTranslateResult": {
+        "type": "object",
+        "properties": {
+          "found": {
+            "type": "boolean"
+          },
+          "key": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
       "PlayerReportingUnsignedConversationContext": {
         "type": "object",
         "properties": {
@@ -75883,7 +76335,8 @@
         "type": "object",
         "properties": {
           "channel": {
-            "type": "string"
+            "type": "number",
+            "format": "int32"
           },
           "ext": {
             "type": "string"
@@ -76527,8 +76980,11 @@
           "PendingEulaData",
           "PendingEulaAcceptance",
           "PendingGamepassStatus",
+          "PendingUserInfoData",
           "PendingRiotIDData",
           "PendingRiotID",
+          "PendingPersistentFlagsData",
+          "PendingRecoverableAccount",
           "PendingProductContext",
           "PendingProductContextInitialization",
           "PendingVNGProfileData",
@@ -76541,9 +76997,6 @@
           "ProductAgeRestricted",
           "PendingAccountEntitlementData",
           "MissingAccountEntitlement",
-          "PendingUserInfoData",
-          "PendingPersistentFlagsData",
-          "PendingRecoverableAccount",
           "PendingAffinityData",
           "PendingLoginQueueData",
           "PendingLoginQueueBypass",
@@ -77029,6 +77482,14 @@
         }
       },
       "PlayerSessionLifecycleRequireRecoverableAccountRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "PlayerSessionLifecycleRequireRecoverableAccountStatus": {
         "type": "object",
         "properties": {
           "reason": {
@@ -80082,6 +80543,9 @@
             "type": "string"
           },
           "id": {
+            "type": "string"
+          },
+          "patchlineId": {
             "type": "string"
           },
           "relative_path": {
@@ -95718,11 +96182,24 @@
           "MOBILE"
         ]
       },
+      "SocialSocialPlatformUILinkDiscordError": {
+        "type": "string",
+        "enum": [
+          "account_already_linked",
+          "email_not_allowed",
+          "rate_limited",
+          "disabled",
+          "unknown"
+        ]
+      },
       "SocialSocialPlatformUILinkDiscordStatus": {
         "type": "object",
         "properties": {
           "available": {
             "type": "boolean"
+          },
+          "error": {
+            "$ref": "#/components/schemas/SocialSocialPlatformUILinkDiscordError"
           },
           "linked": {
             "type": "boolean"
@@ -95901,6 +96378,10 @@
       "SocialUpdateChatSettings": {
         "type": "object",
         "properties": {
+          "generation": {
+            "type": "number",
+            "format": "int64"
+          },
           "settings": {
             "type": "object",
             "additionalProperties": {
@@ -97833,8 +98314,15 @@
           "openid": {
             "type": "string"
           },
+          "rsoPlatformId": {
+            "type": "string"
+          },
           "token": {
             "type": "string"
+          },
+          "zoneId": {
+            "type": "number",
+            "format": "int32"
           }
         }
       },
@@ -99513,9 +100001,26 @@
           }
         }
       },
+      "VoiceChatInitializeVoiceModResource": {
+        "type": "object",
+        "properties": {
+          "appVersion": {
+            "type": "string"
+          },
+          "bundleId": {
+            "type": "string"
+          },
+          "clientKey": {
+            "type": "string"
+          }
+        }
+      },
       "VoiceChatJoinSession": {
         "type": "object",
         "properties": {
+          "isVoiceFontEnabled": {
+            "type": "boolean"
+          },
           "jwt": {
             "type": "string"
           },
@@ -100350,6 +100855,9 @@
           "isTransmitEnabled": {
             "type": "boolean"
           },
+          "isVoiceFontEnabled": {
+            "type": "boolean"
+          },
           "participants": {
             "type": "array",
             "items": {
@@ -100435,6 +100943,9 @@
           "vadSensitivity": {
             "type": "number",
             "format": "int32"
+          },
+          "voiceFontId": {
+            "type": "string"
           }
         }
       },
@@ -100459,8 +100970,15 @@
           "openid": {
             "type": "string"
           },
+          "rsoPlatformId": {
+            "type": "string"
+          },
           "token": {
             "type": "string"
+          },
+          "zoneId": {
+            "type": "number",
+            "format": "int32"
           }
         }
       },
@@ -100483,6 +101001,57 @@
             "type": "string"
           },
           "sessionId": {
+            "type": "string"
+          }
+        }
+      },
+      "VoiceChatTranslateRequest": {
+        "type": "object",
+        "properties": {
+          "blocking": {
+            "type": "boolean"
+          },
+          "keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "locale": {
+            "type": "string"
+          },
+          "patchline": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "string"
+          }
+        }
+      },
+      "VoiceChatTranslateResponse": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VoiceChatTranslateResult"
+            }
+          }
+        }
+      },
+      "VoiceChatTranslateResult": {
+        "type": "object",
+        "properties": {
+          "found": {
+            "type": "boolean"
+          },
+          "key": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "string"
+          },
+          "value": {
             "type": "string"
           }
         }
@@ -100537,6 +101106,10 @@
       "VoiceChatUpdateChatSettings": {
         "type": "object",
         "properties": {
+          "generation": {
+            "type": "number",
+            "format": "int64"
+          },
           "settings": {
             "type": "object",
             "additionalProperties": {
@@ -100586,6 +101159,9 @@
           "isTransmitEnabled": {
             "type": "boolean"
           },
+          "isVoiceFontEnabled": {
+            "type": "boolean"
+          },
           "volume": {
             "type": "number",
             "format": "int32"
@@ -100631,6 +101207,9 @@
           "vadSensitivity": {
             "type": "number",
             "format": "int32"
+          },
+          "voiceFontId": {
+            "type": "string"
           }
         }
       },
@@ -101069,6 +101648,34 @@
           "talkTimeMs": {
             "type": "number",
             "format": "int32"
+          }
+        }
+      },
+      "VoiceChatVoiceFontResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nameLocalizationKey": {
+            "type": "string"
+          }
+        }
+      },
+      "VoiceChatVoiceModLicenseStatusResource": {
+        "type": "object",
+        "properties": {
+          "isLicenseValid": {
+            "type": "boolean"
+          },
+          "licenseStatus": {
+            "type": "string"
+          },
+          "licenseStatusDescription": {
+            "type": "string"
           }
         }
       },

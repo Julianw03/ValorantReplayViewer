@@ -10,11 +10,13 @@ import { ValorantGameLoopModule } from '@/modules/Valorant/ValorantGameLoopModul
 import { RiotValorantAPIModule } from '@/integrations/riot/RiotValorantAPIModule';
 import { ValorantMatchStatsModule } from '@/modules/Valorant/ValorantMatchStatsModule/ValorantMatchStatsModule';
 import { ConfigModule } from '@nestjs/config';
-import { ReplayIOManager } from '@/modules/Valorant/ValorantReplays/storage/ReplayIOManager';
-import { ReplayIOController } from '@/modules/Valorant/ValorantReplays/storage/ReplayIOController';
+import { ReplayManager } from '@/modules/Valorant/ValorantReplays/storage/ReplayManager';
+import { ReplayController } from '@/modules/Valorant/ValorantReplays/storage/ReplayController';
 import { PuuidToPlayerAliasModule } from '@/modules/PuuidToPlayerAliasModule/PuuidToPlayerAliasModule';
 import { ValorantMatchHistoryModule } from '@/modules/Valorant/MatchHistory/MatchHistoryModule';
 import { ReplayInjectManagerV2 } from '@/modules/Valorant/ValorantReplays/injector/ReplayInjectManagerV2';
+import { ReplayDBModule } from '@/modules/Valorant/ValorantReplays/storage/db/ReplayDBModule';
+import { PathProviderModule } from '@/modules/PathProvider/PathProviderModule';
 
 @Module({
     imports: [
@@ -28,10 +30,12 @@ import { ReplayInjectManagerV2 } from '@/modules/Valorant/ValorantReplays/inject
         PuuidToPlayerAliasModule,
         RiotValorantAPIModule,
         ConfigModule,
+        PathProviderModule,
+        ReplayDBModule,
     ],
-    providers: [ReplayIOManager, ReplayFetchManager, ReplayInjectManagerV2],
+    providers: [ReplayManager, ReplayFetchManager, ReplayInjectManagerV2],
     controllers: [
-        ReplayIOController,
+        ReplayController,
         ReplayRemoteController,
         ReplayInjectController,
     ],

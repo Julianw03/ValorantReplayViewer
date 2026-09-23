@@ -1,10 +1,10 @@
-import {HardDrive, Loader2} from 'lucide-react'
-import {Button} from '@/components/ui/button'
-import {Skeleton} from '@/components/ui/skeleton'
-import {ConfirmDialog} from '@/components/ui/confirm-dialog'
-import {useSetupStorage, useStorageStatus, useTeardownStorage} from '@/lib/queries'
-import {cn} from '@/lib/utils'
-import {formatBytes} from './formatters'
+import { HardDrive, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { useSetupStorage, useStorageStatus, useTeardownStorage } from '@/lib/queries'
+import { cn } from '@/lib/utils'
+import { formatBytes } from './formatters'
 
 export function StorageCard() {
     const {data: storageStatus, isLoading} = useStorageStatus()
@@ -39,7 +39,7 @@ export function StorageCard() {
                     )}
                 </div>
             </div>
-            <div>
+            <div className="flex items-center gap-2">
                 {!isSetup ? (
                     <Button size="sm" onClick={() => setupStorage()} disabled={isSettingUp}>
                         {isSettingUp ? <><Loader2 className="animate-spin"/>Initializing…</> : 'Initialize Storage'}

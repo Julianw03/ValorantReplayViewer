@@ -73,7 +73,7 @@ export class ValorantMatchStatsManager
 
         const failedEntries = Object.entries(aliasMap).filter((key, value) => value === null);
 
-        if (failedEntries) {
+        if (failedEntries.length > 0) {
             this.logger.warn(
                 `Failed alias lookups for match ID ${matchId}: ${failedEntries.map(([key, value]) => key).join(', ')}`,
             );

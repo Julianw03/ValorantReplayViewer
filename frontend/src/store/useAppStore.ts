@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { InjectStates, type InjectStatus, type MatchStatsResult } from '@/lib/api';
+
 import type { DownloadStateDTO } from '#/schemas/DownloadState.schema.ts';
 import type { AgentAssetDTO } from '#/schemas/assets/AgentAssetDTO.ts';
 import type { MapAssetDTO } from '#/schemas/assets/MapAssetDTO.ts';
@@ -213,7 +214,7 @@ export const useAppStore = create<AppState>((set) => {
                 set({ currentInjectState: event.payload.value as InjectStatus });
             },
 
-            ReplayIOManager: (event) => {
+            ReplayManager: (event) => {
                 switch (event.type) {
                     case 'KeyValueUpdated': {
                         // A single match's state changed.

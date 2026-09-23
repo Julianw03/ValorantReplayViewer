@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle2, ChevronLeft, Download, Loader2, Video, XCircle } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, Download, Loader2, VideoOff, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useDownloadStateFlags, useRetryDownload, useTriggerDownload } from '@/lib/queries';
@@ -178,15 +178,15 @@ export function MatchRow({ match }: MatchRowProps) {
                 </div>
                 <div className="flex items-center gap-1">
                     {
-                        match.matchInfo.isReplayRecorded ?
+                        !match.matchInfo.isReplayRecorded ?
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                <span className={'flex items-center justify-center size-7'}>
-                                    <Video className={'size-4'} />
+                                <span className={'flex items-center justify-center size-7 text-amber-400'}>
+                                    <VideoOff className={'size-4'} />
                                 </span>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    Replay Available
+                                    No Replay available
                                 </TooltipContent>
                             </Tooltip>
                             :

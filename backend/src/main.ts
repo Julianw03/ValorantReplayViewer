@@ -46,7 +46,7 @@ async function bootstrap() {
     });
     app.enableShutdownHooks();
     app.useWebSocketAdapter(new WsAdapter(app));
-    app.enableCors({ origin: corsOrigin, credentials: false });
+    app.enableCors({ origin: corsOrigin, credentials: false, exposedHeaders: ['ETag'] });
 
     const shutdownService = app.get(ShutdownManager);
     shutdownService.setApp(app);

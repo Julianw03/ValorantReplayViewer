@@ -13,7 +13,7 @@ import { ValorantGameSessionManager } from '@/modules/Valorant/ValorantGameSessi
 import { ValorantMatchStatsManager } from '@/modules/Valorant/ValorantMatchStatsModule/ValorantMatchStatsManager';
 import { ValorantVersionInfoManager } from '@/modules/Valorant/ValorantVersionInfo/ValorantVersionInfoManager';
 import { ProductSessionManager } from '@/modules/ProductSessionModule/ProductSessionManager';
-import { ReplayIOManager } from '@/modules/Valorant/ValorantReplays/storage/ReplayIOManager';
+import { ReplayManager } from '@/modules/Valorant/ValorantReplays/storage/ReplayManager';
 import { ReplayInjectManagerV2 } from '@/modules/Valorant/ValorantReplays/injector/ReplayInjectManagerV2';
 import { SocialPresenceManager } from '@/modules/SocialPresence/SocialPresenceManager';
 
@@ -41,7 +41,7 @@ export class WSEventPublisher
         ReplayInjectManagerV2.name,
         ValorantVersionInfoManager.name,
         ProductSessionManager.name,
-        ReplayIOManager.name
+        ReplayManager.name,
     ]);
 
     private unsubscribeAll: (() => void) | null = null;

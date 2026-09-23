@@ -3,6 +3,7 @@ import { ImportData, ImportHandler } from '@/modules/Valorant/ValorantReplays/st
 import { ReplayFileTypeSchema, ReplayImportRequest } from '#/schemas/upload/ImportReplay.schema';
 import { CURRENT_REPLAY_FORMAT_VERSION, ReplayMetadataV2 } from '#/schemas/ReplayFormatV2.schema';
 import { Logger } from '@nestjs/common';
+import { InvalidReplayArchiveError } from '@/modules/Valorant/ValorantReplays/storage/ReplayStorageErrors';
 
 const UUID_OFFSET = 0x30;
 const UUID_LENGTH = 36 * 2;
@@ -17,8 +18,7 @@ export class ReplayFileImportHandler implements ImportHandler {
         }
 
         if (file.length < UUID_OFFSET + UUID_LENGTH) {
-            this.logger.error("Unable to extract replay Match UUID");
-            throw new Error("Unable to extract replay Match UUID");
+            throw new InvalidReplayArchiveError('Unable to extract replay Match UUID');
         }
         const matchUuid = file.subarray(UUID_OFFSET, UUID_OFFSET + UUID_LENGTH).toString('utf16le');
         this.logger.debug(`Extracted Match UUID: ${matchUuid}`);

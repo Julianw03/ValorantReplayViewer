@@ -2,6 +2,7 @@ import React from 'react';
 import { formatClock } from '@/lib/utils.ts';
 import { useAgentRegistry } from '@/lib/queries.ts';
 import { TWO_TEAM_ROLE_IDS, type TWO_TEAMS_ROLE_ID } from '#/schemas/RiotMatchApiReponseDTO.ts';
+import { resolve } from '@/lib/LocalLinkResolver.ts';
 
 export interface TimelineKill {
     roundTimeMs: number;
@@ -130,8 +131,8 @@ export function RoundTimeline({ data, height = 250 }: RoundTimelineProps) {
                                  left: pct(data.plant.roundTimeMs),
                                  top: mid,
                                  backgroundColor: COLORS.ATTACKER,
-                                 WebkitMaskImage: `url(https://media.valorant-api.com/gamemodes/96bd3920-4f36-d026-2b28-c683eb0bcac5/displayicon.png)`,
-                                 maskImage: `url(https://media.valorant-api.com/gamemodes/96bd3920-4f36-d026-2b28-c683eb0bcac5/displayicon.png)`,
+                                 WebkitMaskImage: `url(${resolve("/api/v1/assets/proxy?url=https%3A%2F%2Fmedia.valorant-api.com%2Fgamemodes%2F96bd3920-4f36-d026-2b28-c683eb0bcac5%2Fdisplayicon.png", "http")})`,
+                                 maskImage: `url(${resolve("/api/v1/assets/proxy?url=https%3A%2F%2Fmedia.valorant-api.com%2Fgamemodes%2F96bd3920-4f36-d026-2b28-c683eb0bcac5%2Fdisplayicon.png", "http")})`,
                                  WebkitMaskRepeat: 'no-repeat',
                                  maskRepeat: 'no-repeat',
                                  WebkitMaskPosition: 'center',
@@ -152,8 +153,8 @@ export function RoundTimeline({ data, height = 250 }: RoundTimelineProps) {
                                  left: pct(data.defuse.roundTimeMs),
                                  top: mid,
                                  backgroundColor: COLORS.DEFENDER,
-                                 WebkitMaskImage: `url(https://media.valorant-api.com/gamemodes/96bd3920-4f36-d026-2b28-c683eb0bcac5/displayicon.png)`,
-                                 maskImage: `url(https://media.valorant-api.com/gamemodes/96bd3920-4f36-d026-2b28-c683eb0bcac5/displayicon.png)`,
+                                 WebkitMaskImage: `url(${resolve("/api/v1/assets/proxy?url=https%3A%2F%2Fmedia.valorant-api.com%2Fgamemodes%2F96bd3920-4f36-d026-2b28-c683eb0bcac5%2Fdisplayicon.png", "http")})`,
+                                 maskImage: `url(${resolve("/api/v1/assets/proxy?url=https%3A%2F%2Fmedia.valorant-api.com%2Fgamemodes%2F96bd3920-4f36-d026-2b28-c683eb0bcac5%2Fdisplayicon.png", "http")})`,
                                  WebkitMaskRepeat: 'no-repeat',
                                  maskRepeat: 'no-repeat',
                                  WebkitMaskPosition: 'center',

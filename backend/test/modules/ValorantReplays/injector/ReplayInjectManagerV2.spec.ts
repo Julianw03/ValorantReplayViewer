@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConflictException } from '@nestjs/common';
 import { ReplayInjectManagerV2 } from '@/modules/Valorant/ValorantReplays/injector/ReplayInjectManagerV2';
-import { ReplayIOManager } from '@/modules/Valorant/ValorantReplays/storage/ReplayIOManager';
+import { ReplayManager } from '@/modules/Valorant/ValorantReplays/storage/ReplayManager';
 import { MatchHistoryManager } from '@/modules/Valorant/MatchHistory/MatchHistoryManager';
 import { SimpleEventBus } from '@/core/events/SimpleEventBus';
 import { ValorantGameLoopManager } from '@/modules/Valorant/ValorantGameLoopModule/ValorantGameLoopManager';
@@ -25,8 +25,8 @@ function historyEntry(matchId: string, isReplayRecorded: boolean): RiotMatchMeta
 
 describe('ReplayInjectManagerV2', () => {
     let manager: ReplayInjectManagerV2;
-    let io: ReplayIOManager & {
-        loadSavedMetadata: ReturnType<typeof vi.fn>;
+    let io: ReplayManager & {
+        getReplay: ReturnType<typeof vi.fn>;
         triggerDownload: ReturnType<typeof vi.fn>;
         moveToValorantDemos: ReturnType<typeof vi.fn>;
         injectReplayOverPlaceholder: ReturnType<typeof vi.fn>;
@@ -39,7 +39,8 @@ describe('ReplayInjectManagerV2', () => {
 
     beforeEach(() => {
         io = {
-            loadSavedMetadata: vi.fn().mockResolvedValue(replaySavedMetadata()),
+            assertNotBusy: vi.fn(),
+            getReplay: vi.fn().mockResolvedValue(replaySavedMetadata()),
             triggerDownload: vi.fn().mockResolvedValue(undefined),
             moveToValorantDemos: vi.fn().mockResolvedValue(undefined),
             injectReplayOverPlaceholder: vi.fn().mockResolvedValue(undefined),
@@ -68,13 +69,13 @@ describe('ReplayInjectManagerV2', () => {
 
     describe('startInject validation', () => {
         it('rejects when the match has no saved replay file', async () => {
-            io.loadSavedMetadata.mockResolvedValue(replaySavedMetadata(false));
+            io.getReplay.mockResolvedValue(replaySavedMetadata(false));
 
             await expect(manager.startInject('match-1')).rejects.toThrow(ConflictException);
         });
 
         it('rejects when saved metadata could not be loaded', async () => {
-            io.loadSavedMetadata.mockResolvedValue(AsyncResult.failure(new Error('boom')));
+            io.getReplay.mockResolvedValue(AsyncResult.failure(new Error('boom')));
 
             await expect(manager.startInject('match-1')).rejects.toThrow(ConflictException);
         });

@@ -9,23 +9,29 @@
         "options": {
           "introspectComments": true,
           "classValidatorShim": true,
-          "dtoFileNameSuffix": ["DTO.ts"],
+          "dtoFileNameSuffix": [
+            "DTO.ts"
+          ],
           "useDtoAsResponse": true,
           "useDtoAsRequest": true
         }
       }
     ],
     "deleteOutDir": true,
-
     "assets": [
       {
         "include": "../public/**/*",
         "outDir": "dist/public"
       },
       {
+        "include": "../db/**/*",
+        "outDir": "dist/db"
+      },
+      {
         "include": "../gen/**/*",
         "outDir": "dist/gen"
-      }, {
+      },
+      {
         "include": "../config.json",
         "outDir": "dist/config.json"
       }

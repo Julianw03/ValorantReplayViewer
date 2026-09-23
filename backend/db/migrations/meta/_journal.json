@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1788640804310,
+      "tag": "0000_nervous_susan_delgado",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1788660239554,
+      "tag": "0001_true_gamora",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789161357996,
+      "tag": "0002_amusing_colleen_wing",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1790111940323,
+      "tag": "0003_early_nitro",
+      "breakpoints": true
+    }
+  ]
+}

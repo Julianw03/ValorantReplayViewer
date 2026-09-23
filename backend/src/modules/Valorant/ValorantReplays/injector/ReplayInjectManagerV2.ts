@@ -3,7 +3,7 @@ import { SimpleEventBus } from '@/core/events/SimpleEventBus';
 import { EventType } from '@/core/events/EventTypes';
 import { StateUpdatedEvent } from '@/core/events/BasicEvent';
 import { ValorantGameLoopManager } from '@/modules/Valorant/ValorantGameLoopModule/ValorantGameLoopManager';
-import { ReplayIOManager } from '@/modules/Valorant/ValorantReplays/storage/ReplayIOManager';
+import { ReplayManager } from '@/modules/Valorant/ValorantReplays/storage/ReplayManager';
 import { MatchHistoryManager } from '@/modules/Valorant/MatchHistory/MatchHistoryManager';
 import { IObjectDataManager } from '@/core/data/interfaces/IObjectDataManager';
 import { SimpleObjectDataManager } from '@/core/data/SimpleObjectDataManager';
@@ -33,7 +33,7 @@ export class ReplayInjectManagerV2
     private unsubscribeFromSession: (() => void) | null = null;
 
     constructor(
-        private readonly ioManager: ReplayIOManager,
+        private readonly ioManager: ReplayManager,
         private readonly matchHistory: MatchHistoryManager,
         protected readonly eventBus: SimpleEventBus,
     ) {
@@ -92,7 +92,7 @@ export class ReplayInjectManagerV2
             throw new ConflictException('An inject process is already running');
         }
 
-        const metadata = await this.ioManager.loadSavedMetadata(matchId);
+        const metadata = await this.ioManager.getReplay(matchId);
         if (!metadata.isSuccess()) {
             throw new ConflictException(`Failed to load metadata for match ${matchId}`);
         }
@@ -125,7 +125,11 @@ export class ReplayInjectManagerV2
         const matches = Object.values(history);
 
         const validPlaceholder = matches.find(
-            (entry) => entry?.matchMetadata?.matchInfo?.isReplayRecorded ?? false,
+            (entry) => {
+                return entry?.matchMetadata?.matchInfo?.isReplayRecorded === true &&
+                    //Custom Games
+                    entry?.matchMetadata?.matchInfo?.provisioningFlowID !== "CustomGame"
+            }
         );
 
         if (!validPlaceholder) {

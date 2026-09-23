@@ -43,7 +43,7 @@ export function ReplayEntryMenu({
 
     const showInject = shownButtons.includes(ReplayRowButtons.INJECT);
     const showDetails = shownButtons.includes(ReplayRowButtons.DETAILS) && !!replay.riotMatchMetadata;
-    const showEdit = false;
+    const showEdit = shownButtons.includes(ReplayRowButtons.EDIT);
     const showDownload = shownButtons.includes(ReplayRowButtons.DOWNLOAD);
     const showDelete = shownButtons.includes(ReplayRowButtons.DELETE);
 
@@ -91,17 +91,10 @@ export function ReplayEntryMenu({
                     </NavLink>
                 </DropdownMenuItem>
 
-                <Tooltip>
-                    <TooltipContent>
-                        <p>Coming soon!</p>
-                    </TooltipContent>
-                    <TooltipTrigger>
-                        <DropdownMenuItem disabled={!showEdit} onClick={onEdit} className="gap-2">
-                            <Pencil className="icon-sm" />
-                            Edit Metadata
-                        </DropdownMenuItem>
-                    </TooltipTrigger>
-                </Tooltip>
+                <DropdownMenuItem disabled={!showEdit} onClick={onEdit} className="gap-2">
+                    <Pencil className="icon-sm" />
+                    Edit Metadata
+                </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Replay Package</DropdownMenuLabel>
