@@ -4,7 +4,8 @@ import { NavLink } from 'react-router-dom';
 import {
     DropdownMenu,
     DropdownMenuContent,
-    DropdownMenuItem, DropdownMenuLabel,
+    DropdownMenuItem,
+    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -17,7 +18,6 @@ import type { ReplayMetadataV2 } from '#/schemas/ReplayFormatV2.schema.ts';
 import { useInjectReplay } from '@/hooks/useInjectReplay.ts';
 import { InjectTooltip } from '@/components/saved-replays/InjectTooltip.tsx';
 import { Button } from '@/components/ui/button.tsx';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip.tsx';
 
 interface ReplayEntryMenuProps {
     replay: ReplayMetadataV2;

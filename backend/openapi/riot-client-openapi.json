@@ -2,8 +2,8 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Riot Client API",
-    "version": "138.0.1.4874",
-    "description": "Created with SDK - Version 26.8.1.0"
+    "version": "139.0.8.4969",
+    "description": "Created with SDK - Version 26.8.3.0"
   },
   "servers": [
     {
@@ -4496,6 +4496,79 @@
         }
       }
     },
+    "/patch-proxy/v2/session-patch-lock/products/{productId}/patchline/{patchlineId}": {
+      "delete": {
+        "tags": [
+          "Plugin patch-proxy"
+        ],
+        "description": "Releases a session patch lock for the product-patchline. ",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "productId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "patchlineId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "2XX": {
+            "description": "Returns nothing"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Plugin patch-proxy"
+        ],
+        "description": "Acquires a session patch lock for the product-patchline. ",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "isExclusive",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "path",
+            "name": "productId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "patchlineId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "2XX": {
+            "description": "Returns nothing"
+          }
+        }
+      }
+    },
     "/patch/v1/installs/{install-id}": {
       "delete": {
         "tags": [
@@ -7604,79 +7677,6 @@
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "/rnet-product-registry/v4/session-patch-lock/products/{productId}/patchline/{patchlineId}": {
-      "delete": {
-        "tags": [
-          "Plugin rnet-product-registry"
-        ],
-        "description": "Releases a shared session patch lock for the product-patchline ",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "productId",
-            "schema": {
-              "type": "string"
-            },
-            "required": true
-          },
-          {
-            "in": "path",
-            "name": "patchlineId",
-            "schema": {
-              "type": "string"
-            },
-            "required": true
-          }
-        ],
-        "responses": {
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "2XX": {
-            "description": "Returns nothing"
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "Plugin rnet-product-registry"
-        ],
-        "description": "Acquires a shared session patch lock for the product-patchline ",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "isExclusive",
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "in": "path",
-            "name": "productId",
-            "schema": {
-              "type": "string"
-            },
-            "required": true
-          },
-          {
-            "in": "path",
-            "name": "patchlineId",
-            "schema": {
-              "type": "string"
-            },
-            "required": true
-          }
-        ],
-        "responses": {
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedError"
-          },
-          "2XX": {
-            "description": "Returns nothing"
           }
         }
       }
@@ -23790,7 +23790,7 @@
         "tags": [
           "Plugin voice-chat"
         ],
-        "description": "Get the current VoiceMod license status ",
+        "description": "Get the current VoiceMod license status after VoiceMod has been initialized ",
         "parameters": [],
         "responses": {
           "401": {
@@ -33249,7 +33249,7 @@
         "tags": [
           "Plugin voice-chat"
         ],
-        "description": "Initialize the VoiceMod SDK used by voice-chat ",
+        "description": "Initialize and opt in to the VoiceMod SDK used by voice-chat ",
         "parameters": [],
         "responses": {
           "401": {
@@ -34832,6 +34832,56 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AnyValue"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rnet-product-registry/v4/products/{productId}/patchlines/{patchlineId}/install-path": {
+      "put": {
+        "tags": [
+          "Plugin rnet-product-registry"
+        ],
+        "description": "Updates product install paths directly, bypassing installDir recomputation ",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "productId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "patchlineId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "2XX": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnyValue"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RnetProductRegistryInstallPathUpdate"
               }
             }
           }
@@ -57200,6 +57250,17 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "InstallPathUpdate": {
+        "type": "object",
+        "properties": {
+          "root_path": {
+            "type": "string"
+          },
+          "full_path": {
+            "type": "string"
           }
         }
       },
@@ -80689,6 +80750,9 @@
               "type": "string"
             }
           },
+          "settings_token_product_id_override": {
+            "type": "string"
+          },
           "rogue_process_allow_list": {
             "type": "array",
             "items": {
@@ -86260,6 +86324,17 @@
           }
         }
       },
+      "RnetProductRegistryInstallPathUpdate": {
+        "type": "object",
+        "properties": {
+          "root_path": {
+            "type": "string"
+          },
+          "full_path": {
+            "type": "string"
+          }
+        }
+      },
       "RnetProductRegistryInstallState": {
         "type": "string",
         "enum": [
@@ -86597,6 +86672,9 @@
             "items": {
               "type": "string"
             }
+          },
+          "settings_token_product_id_override": {
+            "type": "string"
           },
           "use_os_standard_app_structure": {
             "type": "boolean"

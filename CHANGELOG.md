@@ -1,25 +1,22 @@
-## Changelog Version 0.8.0
+## Changelog Version 0.9.0
 > ## Breaking Change
-> The format of replay metadata has been changed and is no longer compatible.
-> The old format was kinda hacked together and the current one should support extension / migration a lot easier.
-> You can still find the old replays under ```%LOCALAPPDATA%\ValorantReplayViewer\old_replays```
+> I broke the saving mechanism again...  
+> Replays saved before this install will still be in the ``%LOCALAPPDATA%\ValorantReplayViewer\replays`` directory but 
+> no longer be visible in the app.
 
 ### Overview
-- You can now upload partial replay data.
-- You can now also download the match data when the match does not have a replay. Only the match summary will be downloaded then.
-- The UI now shows if a replay is available for a recent match.
-- Unknown Version compatibility will now still allow you to inject the replay (as raw .vrf replay files do not store their version nicely)
-- Backend now does stricter validation of DTOs / Schemas using zod.
-
-### Advanced Round Details
-Now has a Versus Tab where you can compare your performance over the game against an enemy.
-Pretty number based for now. I still hope that this may offer some value and if not I would appreciate constructive feedback.
-
+- You can now see your current play-state over your username
+- You can now change the visible name of a replay and add tags and notes.
+- Bunch of background changes around how replays are stored that should allow for some cool functionality down the road.
+  (For example searching replays by tags and other stuff!)
 ### Bug Fixes
-- Fixed an issue where the match history would show a stale state when switching accounts.
+- Fixed an issue where the Replay Injection would pick a placeholder that was not visible in your match history.
+  (This has the side effect that the match you have to select will be your latest **non-custom** match in your Valorant 
+ Match History)
 
 ### Known Issues
-- Cancelling a Replay Injection will not restore the original match.
+- The "Recent Matches" tab can show replays that do not usually appear in your match history.
+- In "Deathmatch" games your presence will not update that often.
 - Custom Games cannot be viewed in match details. Reason for this is that there is no "queue" in custom games. The program can not infer what mode is being
 played and therefore won't display any stats. Might change this in the future to be customizable by the user in the UI.
 

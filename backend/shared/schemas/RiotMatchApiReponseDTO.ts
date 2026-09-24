@@ -37,6 +37,14 @@ export const AbilityCastsSchema = z.object({
 
 export type AbilityCasts = z.infer<typeof AbilityCastsSchema>;
 
+/**
+ * We could also explicitly type this, but currently in the JSON the vars are called 'TempValue[A-Z]' so I think
+ * (and hope) that the entries will have better names in the future
+ */
+export const RiotMatchPlayerScoresSchema = z.record(z.string(), z.unknown());
+
+export type RiotMatchPlayerScores = z.infer<typeof RiotMatchPlayerScoresSchema>;
+
 export const RiotMatchPlayerStatsSchema = z.object({
     score: z.number(),
     roundsPlayed: z.number(),
@@ -59,7 +67,7 @@ export const RiotMatchPlayerSchema = z.object({
     characterId: z.string(),
     isObserver: z.boolean(),
     stats: RiotMatchPlayerStatsSchema,
-    competitiveTier: z.number(),
+    scores: RiotMatchPlayerScoresSchema.optional().nullable()
 });
 
 export type RiotMatchPlayer = z.infer<typeof RiotMatchPlayerSchema>;
