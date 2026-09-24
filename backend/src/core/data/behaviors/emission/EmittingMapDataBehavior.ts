@@ -47,4 +47,13 @@ export class EmittingMapDataBehavior<K extends PropertyKey, S, V> implements IMa
         this.inner.updateKeyValueBatch(entries);
         this.eventBus.publish(StateUpdatedEventImpl.of(this.source, this.inner.getView()));
     }
+
+    updateValue(value: Record<K, S>): void {
+        const prev = this.inner.getView();
+        this.inner.updateValue(value);
+        const next = this.inner.getView();
+        if (!isEqual(prev, next)) {
+            this.eventBus.publish(StateUpdatedEventImpl.of(this.source, next));
+        }
+    }
 }

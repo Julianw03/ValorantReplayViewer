@@ -39,7 +39,7 @@ export class ValorantGameLoopManager implements IObjectDataManager<
     }
 
     protected static map(state: string): string {
-        return state ?? null;
+        return state;
     }
 
     deleteState(): void {

@@ -26,7 +26,7 @@ export interface ReplayUploadFormProps {
 export function ReplayUploadForm({ extension, icon: Icon, buildRequest, children, onUploaded }: ReplayUploadFormProps) {
     const [file, setFile] = useState<File | null>(null);
     const [fileError, setFileError] = useState<string | null>(null);
-    const [override, setOverride] = useState(true);
+    const [override, setOverride] = useState(false);
     const [dragOver, setDragOver] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const uploadReplay = useUploadReplay();

@@ -6,4 +6,5 @@ allowBuilds:
   '@nestjs/core': true
   '@openapitools/openapi-generator-cli': true
   '@scarf/scarf': false
+  better-sqlite3: true
   esbuild: true

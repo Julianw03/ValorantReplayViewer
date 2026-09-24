@@ -4,7 +4,8 @@ import { NavLink } from 'react-router-dom';
 import {
     DropdownMenu,
     DropdownMenuContent,
-    DropdownMenuItem, DropdownMenuLabel,
+    DropdownMenuItem,
+    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -17,7 +18,6 @@ import type { ReplayMetadataV2 } from '#/schemas/ReplayFormatV2.schema.ts';
 import { useInjectReplay } from '@/hooks/useInjectReplay.ts';
 import { InjectTooltip } from '@/components/saved-replays/InjectTooltip.tsx';
 import { Button } from '@/components/ui/button.tsx';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip.tsx';
 
 interface ReplayEntryMenuProps {
     replay: ReplayMetadataV2;
@@ -43,7 +43,7 @@ export function ReplayEntryMenu({
 
     const showInject = shownButtons.includes(ReplayRowButtons.INJECT);
     const showDetails = shownButtons.includes(ReplayRowButtons.DETAILS) && !!replay.riotMatchMetadata;
-    const showEdit = false;
+    const showEdit = shownButtons.includes(ReplayRowButtons.EDIT);
     const showDownload = shownButtons.includes(ReplayRowButtons.DOWNLOAD);
     const showDelete = shownButtons.includes(ReplayRowButtons.DELETE);
 
@@ -91,17 +91,10 @@ export function ReplayEntryMenu({
                     </NavLink>
                 </DropdownMenuItem>
 
-                <Tooltip>
-                    <TooltipContent>
-                        <p>Coming soon!</p>
-                    </TooltipContent>
-                    <TooltipTrigger>
-                        <DropdownMenuItem disabled={!showEdit} onClick={onEdit} className="gap-2">
-                            <Pencil className="icon-sm" />
-                            Edit Metadata
-                        </DropdownMenuItem>
-                    </TooltipTrigger>
-                </Tooltip>
+                <DropdownMenuItem disabled={!showEdit} onClick={onEdit} className="gap-2">
+                    <Pencil className="icon-sm" />
+                    Edit Metadata
+                </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Replay Package</DropdownMenuLabel>

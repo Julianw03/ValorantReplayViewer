@@ -10,8 +10,8 @@ export interface MinimalMatchTeam {
 
 export interface MinimalMatchPlayer {
     subject: string,
-    gameName: string
-    tagLine: string
+    gameName: string | undefined
+    tagLine: string | undefined
     teamId: string
     characterId: string
     isObserver: boolean

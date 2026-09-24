@@ -1,5 +1,5 @@
 import {
-    BadRequestException,
+    NotFoundException,
     Controller,
     Get,
     HttpCode,
@@ -9,10 +9,15 @@ import {
     Post,
     UseGuards,
 } from '@nestjs/common';
-import { ApiAcceptedResponse, ApiOperation } from '@nestjs/swagger';
-import { ReplayIOManager } from '@/modules/Valorant/ValorantReplays/storage/ReplayIOManager';
+import { ApiAcceptedResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { createZodDto, ZodValidationPipe } from 'nestjs-zod';
+import { ReplayManager } from '@/modules/Valorant/ValorantReplays/storage/ReplayManager';
 import { ProductSessionGuard, RequiredProduct } from '@/modules/ProductSessionModule/ProductSessionGuard';
-import { DownloadStateDTO } from '#/schemas/DownloadState.schema';
+import { type DownloadStateDTO, DownloadStateDTOSchema } from '#/schemas/DownloadState.schema';
+import { type MatchIdParam, MatchIdParamSchema } from '#/schemas/replays/ReplayStorageApi.schema';
+
+class DownloadStateModel extends createZodDto(DownloadStateDTOSchema) {
+}
 
 @RequiredProduct('valorant')
 @UseGuards(ProductSessionGuard)
@@ -23,7 +28,7 @@ export class ReplayRemoteController {
     private readonly logger = new Logger(ReplayRemoteController.name);
 
     constructor(
-        protected readonly replayIOManager: ReplayIOManager,
+        protected readonly replayManager: ReplayManager,
     ) {
     }
 
@@ -36,8 +41,8 @@ export class ReplayRemoteController {
     @ApiAcceptedResponse({
         description: 'Download triggered.',
     })
-    async triggerDownload(@Param('matchId') matchId: string): Promise<void> {
-        this.replayIOManager.triggerDownload(matchId);
+    triggerDownload(@Param(new ZodValidationPipe(MatchIdParamSchema)) { matchId }: MatchIdParam): void {
+        this.startDownload(matchId, false);
     }
 
     @Post('matches/recent/:matchId/download/retry')
@@ -46,8 +51,8 @@ export class ReplayRemoteController {
         description: 'Retries a failed replay download for a given match.',
     })
     @HttpCode(HttpStatus.ACCEPTED)
-    async retryDownload(@Param('matchId') matchId: string): Promise<void> {
-        this.replayIOManager.triggerDownload(matchId, true);
+    retryDownload(@Param(new ZodValidationPipe(MatchIdParamSchema)) { matchId }: MatchIdParam): void {
+        this.startDownload(matchId, true);
     }
 
     @Get('matches/recent/:matchId/download/state')
@@ -55,13 +60,21 @@ export class ReplayRemoteController {
         summary: 'Get download state',
         description: 'Returns current status of a replay download job.',
     })
-    async getDownloadState(
-        @Param('matchId') matchId: string,
-    ): Promise<DownloadStateDTO | null> {
-        const entryView = this.replayIOManager.getKeyView(matchId);
+    @ApiOkResponse({ type: DownloadStateModel })
+    @ApiNotFoundResponse({ description: 'No download known for this match.' })
+    getDownloadState(
+        @Param(new ZodValidationPipe(MatchIdParamSchema)) { matchId }: MatchIdParam,
+    ): DownloadStateDTO {
+        const entryView = this.replayManager.getKeyView(matchId);
         if (entryView === null) {
-            throw new BadRequestException(`No download job found for match ${matchId}`);
+            throw new NotFoundException(`No download job found for match ${matchId}`);
         }
         return entryView;
+    }
+
+    private startDownload(matchId: string, retry: boolean): void {
+        this.replayManager.triggerDownload(matchId, retry).catch((e) => {
+            this.logger.warn(`Download of match ${matchId} did not complete`, e);
+        });
     }
 }

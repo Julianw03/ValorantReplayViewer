@@ -4,7 +4,7 @@ import { AgentAssetDTOSchema } from '#/schemas/assets/AgentAssetDTO';
 import { GearAssetDTOSchema } from '#/schemas/assets/GearAssetDTO';
 import { WeaponAssetDTOSchema } from '#/schemas/assets/WeaponAssetDTO';
 import { MapAssetDTOSchema } from '#/schemas/assets/MapAssetDTO';
-import { z } from 'zod';
+import { z, ZodType } from 'zod';
 
 @Injectable()
 export class ValorantAssetAPI {
@@ -16,7 +16,7 @@ export class ValorantAssetAPI {
     ) {
     }
 
-    protected async fetchAndParse<T extends z.ZodTypeAny>(
+    protected async fetchAndParse<T extends ZodType>(
         endpoint: string,
         schema: T,
     ): Promise<z.infer<T>> {

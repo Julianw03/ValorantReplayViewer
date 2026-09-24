@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ConfigOverrides, MatchStatsResult } from '@/lib/api';
 import { api } from '@/lib/api';
 import { useAppStore } from '@/store/useAppStore';
@@ -11,6 +11,7 @@ import type { GearAssetDTO } from '#/schemas/assets/GearAssetDTO.ts';
 import type { ProductSessionDTO } from '#/schemas/ProductSession.schema.ts';
 import type { RiotMatchMetadata } from '#/schemas/ReplayFormatV2.schema.ts';
 import type { ReplayImportRequest } from '#/schemas/upload/ImportReplay.schema.ts';
+import type { UserMetadataPatch } from '#/schemas/replays/ReplayStorageApi.schema.ts';
 
 // ---- Query keys ----
 
@@ -19,13 +20,14 @@ export const queryKeys = {
     playerAlias: ['playerAlias'] as const,
     playerUuid: ['playerUuid'] as const,
     storageStatus: ['storageStatus'] as const,
-    storedMatches: ['storedMatches'] as const,
+    storedMatches: (page: number) => ['storedMatches', page] as const,
     currentShippingVersion: ['currentShippingVersion'] as const,
     recentMatches: ['recentMatches'] as const,
     downloadStates: ['downloadStates'] as const,
     injectStatus: ['injectStatus'] as const,
     matchStats: (matchId: string) => ['matchStats', matchId] as const,
     matchMetadata: (matchId: string) => ['matchMetadata', matchId] as const,
+    userMetadata: (matchId: string) => ['userMetadata', matchId] as const,
     mapRegistry: ['mapRegistry'] as const,
     agentRegistry: ['agentRegistry'] as const,
     weaponRegistry: ['weaponRegistry'] as const,
@@ -33,6 +35,8 @@ export const queryKeys = {
     productSessionRegistry: ['productSessionRegistry'] as const,
     effectiveConfig: ['effectiveConfig'] as const,
     configOverrides: ['configOverrides'] as const,
+    gameLoopState: ['gameLoopState'] as const,
+    socialPresenceRegistry: ['socialPresenceRegistry'] as const,
 } as const;
 
 // ---- Riot Client ----
@@ -116,17 +120,20 @@ export function useTeardownStorage() {
         mutationFn: () => api.storage.teardown(),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.storageStatus });
-            queryClient.invalidateQueries({ queryKey: queryKeys.storedMatches });
+            queryClient.invalidateQueries({ queryKey: ['storedMatches'] });
         },
     });
 }
 
 // ---- Stored matches ----
 
-export function useStoredMatches() {
+export const STORED_MATCHES_PAGE_SIZE = 10;
+
+export function useStoredMatches(page: number) {
     return useQuery({
-        queryKey: queryKeys.storedMatches,
-        queryFn: () => api.storage.listMatches(),
+        queryKey: queryKeys.storedMatches(page),
+        queryFn: () => api.storage.listMatches(page, STORED_MATCHES_PAGE_SIZE),
+        placeholderData: keepPreviousData,
     });
 }
 
@@ -135,7 +142,7 @@ export function useDeleteMatch() {
     return useMutation({
         mutationFn: (matchId: string) => api.storage.deleteMatch(matchId),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: queryKeys.storedMatches });
+            queryClient.invalidateQueries({ queryKey: ['storedMatches'] });
             queryClient.invalidateQueries({ queryKey: queryKeys.storageStatus });
         },
     });
@@ -147,8 +154,32 @@ export function useUploadReplay() {
         mutationFn: ({ file, data, override }: { file: File; data: ReplayImportRequest; override: boolean }) =>
             api.storage.importReplay(file, data, override),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: queryKeys.storedMatches });
+            queryClient.invalidateQueries({ queryKey: ['storedMatches'] });
             queryClient.invalidateQueries({ queryKey: queryKeys.storageStatus });
+        },
+    });
+}
+
+// Always refetched when editing starts, so the form never saves against a stale ETag.
+export function useUserMetadata(matchId: string, enabled: boolean) {
+    return useQuery({
+        queryKey: queryKeys.userMetadata(matchId),
+        queryFn: () => api.storage.getUserMetadata(matchId),
+        enabled,
+        staleTime: 0,
+        gcTime: 0,
+    });
+}
+
+export function useUpdateUserMetadata() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ matchId, patch, etag }: { matchId: string; patch: UserMetadataPatch; etag: string }) =>
+            api.storage.patchUserMetadata(matchId, patch, etag),
+        onSuccess: (updated, { matchId }) => {
+            queryClient.setQueryData(queryKeys.userMetadata(matchId), updated);
+            queryClient.invalidateQueries({ queryKey: ['storedMatches'] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.matchMetadata(matchId) });
         },
     });
 }
@@ -570,4 +601,55 @@ export function useMatchMetadata(matchId: string, enabled = true) {
         staleTime: Infinity,
         retry: false,
     });
+}
+
+// ---- Game status ----
+
+/**
+ * Current Valorant game-loop state (e.g. 'MENUS', 'REPLAY'). This is a raw
+ * passthrough string sourced from Riot's own session payload — there is no
+ * fixed/known set of values, so it's surfaced as-is rather than mapped to an enum.
+ * Returns `null` until the Riot Client has reported a state yet.
+ */
+export function useGameLoopState() {
+    const existing = useAppStore((s) => s.currentGameLoopState);
+    const setCurrentGameLoopState = useAppStore((s) => s.setCurrentGameLoopState);
+
+    useQuery<string | null>({
+        queryKey: queryKeys.gameLoopState,
+        queryFn: async () => {
+            const state = await api.gameLoop.getState();
+            setCurrentGameLoopState(state);
+            return state;
+        },
+        enabled: existing === null,
+        refetchInterval: (query) => (query.state.data === null ? 3000 : false),
+        staleTime: Infinity,
+        retry: false,
+    });
+
+    return existing;
+}
+
+/**
+ * Social presence for every known Riot product (Valorant, League, TFT, ...)
+ * that currently has one, keyed by product id.
+ */
+export function useSocialPresenceRegistry() {
+    const registry = useAppStore((s) => s.socialPresenceRegistry);
+    const setSocialPresenceRegistry = useAppStore((s) => s.setSocialPresenceRegistry);
+
+    useQuery({
+        queryKey: queryKeys.socialPresenceRegistry,
+        queryFn: async () => {
+            const data = await api.socialPresence.getAll();
+            setSocialPresenceRegistry(data);
+            return data;
+        },
+        enabled: registry === null,
+        staleTime: Infinity,
+        retry: false,
+    });
+
+    return registry;
 }

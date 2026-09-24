@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useDeleteMatch } from '@/lib/queries';
-import { API_BASE } from '@/lib/api';
+import { useDeleteMatch, useUpdateUserMetadata, useUserMetadata } from '@/lib/queries';
+import { API_BASE, ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useRelativeTime } from '@/hooks/useRelativeTime';
 import { mapDisplayName, truncateId } from './formatters';
@@ -15,6 +15,7 @@ import { ReplayEntryMenu } from './ReplayEntryMenu';
 import { ReplayEntryEditForm } from './ReplayEntryEditForm';
 import { ReplayEntryDetails } from './ReplayEntryDetails';
 import { Button } from '@/components/ui/button.tsx';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Shared grid layout — applied to both the header row and each entry's
 // summary row so columns stay aligned. Columns: queue | map | player | stored | status+controls
@@ -34,7 +35,6 @@ interface ReplayEntryProps {
     replay: ReplayMetadataV2;
     shownButtons?: ReplayRowButton[];
     defaultExpanded?: boolean;
-    onSave?: (id: string, patch: { name: string; tags: string[]; notes: string }) => void;
 }
 
 // Small helper so every "we don't have this piece of data" case renders
@@ -47,12 +47,13 @@ export function ReplayEntry({
                                 replay,
                                 shownButtons = Object.values(ReplayRowButtons),
                                 defaultExpanded = false,
-                                onSave,
                             }: ReplayEntryProps) {
     const [isOpen, setIsOpen] = useState(defaultExpanded);
     const [editing, setEditing] = useState(false);
     const { mutate: deleteMatch, isPending: isDeleting } = useDeleteMatch();
     const matchId = replay.uuid;
+    const editable = useUserMetadata(matchId, editing);
+    const updateUserMetadata = useUpdateUserMetadata();
 
     const matchInfo = replay.riotMatchMetadata?.matchMetadata?.matchInfo;
     const hasMatchData = matchInfo !== undefined;
@@ -70,10 +71,42 @@ export function ReplayEntry({
 
     const downloadHref = `${API_BASE}/plugins/replay/storage/matches/${matchId}`;
 
-    function handleSave(patch: { name: string; tags: string[]; notes: string }) {
-        onSave?.(matchId, patch);
+    function startEditing() {
+        updateUserMetadata.reset();
+        setEditing(true);
+    }
+
+    function stopEditing() {
+        updateUserMetadata.reset();
         setEditing(false);
     }
+
+    function handleSave(patch: { name: string; tags: string[]; notes: string }) {
+        if (!editable.data) return;
+        updateUserMetadata.mutate(
+            {
+                matchId,
+                patch: { ...patch, notes: patch.notes.trim() ? patch.notes : null },
+                etag: editable.data.etag,
+            },
+            { onSuccess: () => setEditing(false) },
+        );
+    }
+
+    function reloadEditable() {
+        updateUserMetadata.reset();
+        void editable.refetch();
+    }
+
+    const saveError = updateUserMetadata.error;
+    const editError = saveError instanceof ApiError && saveError.status === 412 ? (
+        <>
+            This replay was changed elsewhere.{' '}
+            <button type="button" className="underline" onClick={reloadEditable}>
+                Reload the latest version
+            </button>
+        </>
+    ) : saveError?.message;
 
     return (
         <Collapsible
@@ -169,7 +202,7 @@ export function ReplayEntry({
                                     isDeleting={isDeleting}
                                     downloadHref={downloadHref}
                                     downloadFilename={`${matchId}.vrp`}
-                                    onEdit={() => setEditing(true)}
+                                    onEdit={startEditing}
                                     onDelete={() => deleteMatch(matchId)}
                                 />
                             )
@@ -188,15 +221,24 @@ export function ReplayEntry({
                 </div>
             </div>
 
-            {editing && (
+            {editing && (editable.data ? (
                 <ReplayEntryEditForm
-                    initialName={userMetadata?.name ?? ''}
-                    initialTags={userMetadata?.tags ?? []}
-                    initialNotes={userMetadata?.notes ?? ''}
-                    onCancel={() => setEditing(false)}
+                    key={editable.data.etag}
+                    initialName={editable.data.data.name}
+                    initialTags={editable.data.data.tags}
+                    initialNotes={editable.data.data.notes ?? ''}
+                    isSaving={updateUserMetadata.isPending}
+                    error={editError}
+                    onCancel={stopEditing}
                     onSave={handleSave}
                 />
-            )}
+            ) : editable.isError ? (
+                <div className="border-t border-border/50 px-4 py-3 text-xs text-destructive">
+                    Could not load replay details for editing: {editable.error.message}
+                </div>
+            ) : (
+                <Skeleton className="mx-4 my-3 h-40 rounded-md" />
+            ))}
 
             <CollapsibleContent>
                 <ReplayEntryDetails replay={replay} highlightPlayer={downloaderId} />

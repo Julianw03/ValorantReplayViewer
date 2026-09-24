@@ -21,13 +21,8 @@ export function RecentMatchesPage() {
     } = useRecentMatches();
 
     const matches = data?.pages.flat() ?? [];
-    // Fires fetchNextPage when the sentinel at the bottom of the list scrolls into view.
     const { ref: loadMoreRef, inView: loadMoreInView } = useInView({ rootMargin: '200px' });
 
-    // Only fetch on the not-in-view -> in-view transition, not on every re-render where
-    // the sentinel merely *remains* in view (e.g. a short trailing page doesn't push the
-    // sentinel back out, which would otherwise re-fire this effect the moment the previous
-    // fetch's isFetchingNextPage flips back to false and chain-fetch further pages).
     const wasInViewRef = useRef(false);
 
     useEffect(() => {

@@ -24,6 +24,8 @@ import { WeaponAssetResolverModule } from '@/modules/AssetResolving/Weapons/Weap
 import { GearAssetResolverModule } from '@/modules/AssetResolving/Gear/GearAssetResolverModule';
 import { AccountPuuidModule } from '@/modules/Account/AccountPuuidModule/AccountPuuidModule';
 import { ValorantMatchHistoryModule } from '@/modules/Valorant/MatchHistory/MatchHistoryModule';
+import { SocialPresenceModule } from '@/modules/SocialPresence/SocialPresenceModule';
+import { PathProviderModule } from '@/modules/PathProvider/PathProviderModule';
 
 export const APP = Symbol('APP');
 
@@ -44,6 +46,7 @@ export const APP = Symbol('APP');
         ValorantMatchStatsModule,
         ValorantGameLoopModule,
         ValorantMatchHistoryModule,
+        SocialPresenceModule,
         RiotValorantAPIModule,
         ValorantAssetAPIModule,
         MapAssetResolverModule,
@@ -55,6 +58,7 @@ export const APP = Symbol('APP');
         ShutdownModule,
         EventBusModule,
         ReplayModule,
+        PathProviderModule
     ],
 })
 export class AppModule {

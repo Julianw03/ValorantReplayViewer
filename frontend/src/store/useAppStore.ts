@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { InjectStates, type InjectStatus, type MatchStatsResult } from '@/lib/api';
+
 import type { DownloadStateDTO } from '#/schemas/DownloadState.schema.ts';
 import type { AgentAssetDTO } from '#/schemas/assets/AgentAssetDTO.ts';
 import type { MapAssetDTO } from '#/schemas/assets/MapAssetDTO.ts';
@@ -9,6 +10,7 @@ import type { ProductSessionDTO } from '#/schemas/ProductSession.schema.ts';
 import type { PlayerAliasDTO } from '#/schemas/PlayerAlias.schema.ts';
 import type { PlayerUuidDTO } from '#/schemas/PlayerUuid.schema.ts';
 import type { MinimalVersionInfo } from '#/dto/MinimalVersionInfo.ts';
+import type { SocialPresence } from '#/schemas/SocialPresence/SocialPresence.schema.ts';
 
 export type EventType =
     | 'StateUpdated'
@@ -64,6 +66,9 @@ interface AppState {
     gearRegistry: Record<string, GearAssetDTO> | null;
     sessionRegistry: Record<string, ProductSessionDTO> | null;
 
+    currentGameLoopState: string | null;
+    socialPresenceRegistry: Record<string, SocialPresence> | null;
+
     setWsConnected: (connected: boolean) => void;
     setPlayerAlias: (alias: PlayerAliasDTO) => void;
     setPlayerUuid: (uuid: PlayerUuidDTO) => void;
@@ -84,6 +89,9 @@ interface AppState {
     setGearRegistry: (gearRegistry: Record<string, GearAssetDTO>) => void;
     setSessionRegistry: (registry: Record<string, ProductSessionDTO>) => void;
     setCurrentShippingVersion: (version: string | null) => void;
+
+    setCurrentGameLoopState: (state: string | null) => void;
+    setSocialPresenceRegistry: (registry: Record<string, SocialPresence> | null) => void;
 
     /**
      * Routes incoming WebSocket events to per-source handlers.
@@ -163,6 +171,28 @@ export const useAppStore = create<AppState>((set) => {
     const setCurrentInjectStatus = (currentInjectState: InjectStatus) =>
         set({ currentInjectState });
 
+    const setCurrentGameLoopState = (state: string | null) =>
+        set({ currentGameLoopState: state });
+
+    const setSocialPresenceRegistry = (registry: Record<string, SocialPresence> | null) =>
+        set({ socialPresenceRegistry: registry });
+
+    /**
+     * Upserts or removes a single product's presence entry.
+     * Passing `null` removes the entry from the map.
+     */
+    const setSocialPresence = (productId: string, presence: SocialPresence | null) =>
+        set((s) => {
+            if (presence === null) {
+                const prev = s.socialPresenceRegistry;
+                if (prev == null) return {};
+                const next = { ...prev };
+                delete next[productId];
+                return { socialPresenceRegistry: next };
+            }
+            return { socialPresenceRegistry: { ...(s.socialPresenceRegistry ?? {}), [productId]: presence } };
+        });
+
     // ---------------------------------------------------------------------------
     // WebSocket event router
     // ---------------------------------------------------------------------------
@@ -184,7 +214,7 @@ export const useAppStore = create<AppState>((set) => {
                 set({ currentInjectState: event.payload.value as InjectStatus });
             },
 
-            ReplayIOManager: (event) => {
+            ReplayManager: (event) => {
                 switch (event.type) {
                     case 'KeyValueUpdated': {
                         // A single match's state changed.
@@ -213,6 +243,27 @@ export const useAppStore = create<AppState>((set) => {
                 if (event.type !== 'StateUpdated') return;
                 const info = event.payload.value as MinimalVersionInfo | null;
                 set({ currentValorantShippingVersion: info?.version ?? null });
+            },
+
+            ValorantGameLoopManager: (event) => {
+                if (event.type !== 'StateUpdated') return;
+                set({ currentGameLoopState: event.payload.value as string | null });
+            },
+
+            SocialPresenceManager: (event) => {
+                switch (event.type) {
+                    case 'StateUpdated': {
+                        const registry = event.payload.value as Record<string, SocialPresence> | null;
+                        setSocialPresenceRegistry(registry);
+                        break;
+                    }
+                    case 'KeyValueUpdated': {
+                        const productId = event.payload.key as string;
+                        const presence = event.payload.value as SocialPresence | null;
+                        setSocialPresence(productId, presence);
+                        break;
+                    }
+                }
             },
 
             ProductSessionManager: (event) => {
@@ -264,6 +315,8 @@ export const useAppStore = create<AppState>((set) => {
         weaponRegistry: null,
         gearRegistry: null,
         sessionRegistry: null,
+        currentGameLoopState: null,
+        socialPresenceRegistry: null,
         currentInjectState: {
             state: InjectStates.IDLE,
             targetMatchId: null,
@@ -284,6 +337,8 @@ export const useAppStore = create<AppState>((set) => {
         setGearRegistry,
         setSessionRegistry,
         setCurrentShippingVersion,
+        setCurrentGameLoopState,
+        setSocialPresenceRegistry,
         handleWSEvent,
     };
 });

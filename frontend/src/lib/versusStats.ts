@@ -9,7 +9,7 @@ import type { RiotMatchMetadata } from '#/schemas/ReplayFormatV2.schema.ts';
 
 type Match = RiotMatchApiResponseDTO;
 export type RoundResult = Match['roundResults'][number];
-export type AnnotatedKill = Match['kills'][number];
+export type AnnotatedKill = NonNullable<Match['kills']>[number];
 
 export interface ShotBreakdown {
     head: number;

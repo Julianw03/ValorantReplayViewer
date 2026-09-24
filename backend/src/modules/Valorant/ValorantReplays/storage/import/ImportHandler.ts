@@ -9,3 +9,7 @@ export interface ImportData {
 export interface ImportHandler {
     import(file: Buffer, request: ReplayImportRequest): Promise<ImportData>
 }
+
+export function defaultReplayName(matchId: string): string {
+    return `Replay ${matchId.substring(0, 8)}`;
+}

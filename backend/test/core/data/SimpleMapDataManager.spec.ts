@@ -84,6 +84,27 @@ describe('SimpleMapDataManager', () => {
         });
     });
 
+    describe('updateValue', () => {
+        it('sets every entry from the record', () => {
+            manager.updateValue({ a: 1, b: 2, c: 3 });
+            expect(manager.getView()).toEqual({ a: 1, b: 2, c: 3 });
+        });
+
+        it('drops keys that are absent from the new record', () => {
+            manager.updateKeyValueBatch({ old: 1, kept: 2 });
+            manager.updateValue({ kept: 20, added: 30 });
+            expect(manager.getKeyView('old')).toBeNull();
+            expect(manager.getKeyView('kept')).toBe(20);
+            expect(manager.getKeyView('added')).toBe(30);
+        });
+
+        it('clears the map when given an empty record', () => {
+            manager.updateKeyValueBatch({ a: 1, b: 2 });
+            manager.updateValue({});
+            expect(manager.getView()).toBeNull();
+        });
+    });
+
     describe('deleteKey', () => {
         it('removes an existing key', () => {
             manager.updateKeyValue('key', 5);

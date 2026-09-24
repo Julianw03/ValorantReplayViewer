@@ -8,30 +8,22 @@ import type { MapAssetDTO } from '#/schemas/assets/MapAssetDTO.ts';
 import type { AgentAssetDTO } from '#/schemas/assets/AgentAssetDTO.ts';
 import type { WeaponAssetDTO } from '#/schemas/assets/WeaponAssetDTO.ts';
 import type { GearAssetDTO } from '#/schemas/assets/GearAssetDTO.ts';
-import type { ReplayMetadataV2, RiotMatchMetadata } from '#/schemas/ReplayFormatV2.schema.ts';
+import type { ReplayMetadataV2, RiotMatchMetadata, UserMetadata } from '#/schemas/ReplayFormatV2.schema.ts';
 import type { MinimalVersionInfo } from '#/dto/MinimalVersionInfo.ts';
 import type { StorageStatusDTO } from '#/schemas/StorageStatusDTO.ts';
 import type { ReplayImportRequest } from '#/schemas/upload/ImportReplay.schema.ts';
+import type { SocialPresence } from '#/schemas/SocialPresence/SocialPresence.schema.ts';
+import type {
+    DownloadStatesResponse,
+    ReplayListResponse,
+    UserMetadataPatch,
+} from '#/schemas/replays/ReplayStorageApi.schema.ts';
+import { InjectState as InjectStates, type InjectState, type InjectStatus } from '#/schemas/InjectStatus.schema.ts';
+
+export { InjectStates };
+export type { InjectState, InjectStatus };
 
 export const API_BASE = LocalLinkResolver.resolve('/api/v1', 'http');
-
-export const InjectStates = {
-    IDLE: 'IDLE',
-    DOWNLOADING_PLACEHOLDER: 'DOWNLOADING_PLACEHOLDER',
-    AWAITING_REPLAY_START: 'AWAITING_REPLAY_START',
-    INJECTED: 'INJECTED',
-    RESTORING_ORIGINAL_REPLAY: 'RESTORING_ORIGINAL_REPLAY',
-    FAILED: 'FAILED',
-} as const;
-
-export type InjectState =
-    typeof InjectStates[keyof typeof InjectStates];
-
-export interface InjectStatus {
-    state: InjectState;
-    targetMatchId: string | null;
-    placeholderMatchId: string | null;
-}
 
 // ---- Match stats (from Riot API via backend cache) ----
 
@@ -86,8 +78,62 @@ export interface EffectiveConfig {
 
 // ---- HTTP client ----
 
-async function request<T = void>(path: string, options?: RequestInit): Promise<T> {
+export class ApiError extends Error {
+    readonly status: number;
+
+    constructor(message: string, status: number) {
+        super(message);
+        this.status = status;
+    }
+}
+
+export interface WithETag<T> {
+    data: T;
+    etag: string;
+}
+
+async function send(path: string, options?: RequestInit): Promise<Response> {
     const response = await fetch(`${API_BASE}${path}`, options);
+    if (!response.ok) {
+        let message = `HTTP ${response.status}`;
+        try {
+            const body = await response.json();
+            message = body.message ?? message;
+        } catch {
+            // ignore parse errors
+        }
+        throw new ApiError(message, response.status);
+    }
+    return response;
+}
+
+async function request<T = void>(path: string, options?: RequestInit): Promise<T> {
+    const response = await send(path, options);
+    const contentType = response.headers.get('content-type');
+    if (contentType?.includes('application/json')) {
+        return response.json() as Promise<T>;
+    }
+    return undefined as T;
+}
+
+async function requestWithETag<T>(path: string, options?: RequestInit): Promise<WithETag<T>> {
+    const response = await send(path, options);
+    const etag = response.headers.get('etag');
+    if (!etag) {
+        throw new Error(`Response of ${path} carries no ETag`);
+    }
+    return { data: await response.json() as T, etag };
+}
+
+/**
+ * Like `request`, but for endpoints that return a bare `text/plain` / `text/html`
+ * body rather than JSON (e.g. the game-loop state string). Maps 404 to `null`.
+ */
+async function requestText(path: string, options?: RequestInit): Promise<string | null> {
+    const response = await fetch(`${API_BASE}${path}`, options);
+    if (response.status === 404) {
+        return null;
+    }
     if (!response.ok) {
         let message = `HTTP ${response.status}`;
         try {
@@ -98,11 +144,8 @@ async function request<T = void>(path: string, options?: RequestInit): Promise<T
         }
         throw new Error(message);
     }
-    const contentType = response.headers.get('content-type');
-    if (contentType?.includes('application/json')) {
-        return response.json() as Promise<T>;
-    }
-    return undefined as T;
+    const text = await response.text();
+    return text.length > 0 ? text : null;
 }
 
 // ---- API ----
@@ -119,19 +162,30 @@ export const api = {
         get: () => request<MinimalVersionInfo>('/caching/valorant-version-info'),
     },
     storage: {
-        getAllDownloadStates: () => request<Record<string, DownloadStateDTO>>('/plugins/replay/storage/download-states'),
+        getAllDownloadStates: () => request<DownloadStatesResponse>('/plugins/replay/storage/download-states'),
         getStatus: () => request<StorageStatusDTO>('/plugins/replay/storage/status'),
         setup: () => request('/plugins/replay/storage', { method: 'POST' }),
         teardown: () => request('/plugins/replay/storage', { method: 'DELETE' }),
-        listMatches: () => request<ReplayMetadataV2[]>('/plugins/replay/storage/matches'),
+        listMatches: (page: number, pageSize: number) => {
+            const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+            return request<ReplayListResponse>(`/plugins/replay/storage/matches?${params}`);
+        },
         getMetadata: (matchId: string) => request<ReplayMetadataV2>(`/plugins/replay/storage/matches/${matchId}/metadata`),
+        getUserMetadata: (matchId: string) =>
+            requestWithETag<UserMetadata>(`/plugins/replay/storage/matches/${matchId}/user-metadata`),
+        patchUserMetadata: (matchId: string, patch: UserMetadataPatch, etag: string) =>
+            requestWithETag<UserMetadata>(`/plugins/replay/storage/matches/${matchId}/user-metadata`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'If-Match': etag },
+                body: JSON.stringify(patch),
+            }),
         deleteMatch: (matchId: string) =>
             request(`/plugins/replay/storage/matches/${matchId}`, { method: 'DELETE' }),
-        importReplay: (file: File, data: ReplayImportRequest, override = true) => {
+        importReplay: (file: File, data: ReplayImportRequest, override = false) => {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('data', JSON.stringify(data));
-            return request(`/plugins/replay/storage/import?override=${override}`, { method: 'POST', body: formData });
+            return request<ReplayMetadataV2>(`/plugins/replay/storage/import?override=${override}`, { method: 'POST', body: formData });
         },
     },
     matchHistory: {
@@ -198,5 +252,11 @@ export const api = {
     },
     processControl: {
         shutdown: () => request('/process-control/shutdown', { method: 'POST' }),
+    },
+    gameLoop: {
+        getState: () => requestText('/caching/valorant-loop-session/state'),
+    },
+    socialPresence: {
+        getAll: () => request<Record<string, SocialPresence> | null>('/caching/valorant/multigame-presences'),
     },
 } as const;

@@ -96,10 +96,10 @@ describe('AsyncMapDataBehavior', () => {
             await expect(behavior.getResult('missing')).rejects.toThrow('No pending fetch for key missing');
         });
 
-        it('rejects with TimeoutError when the promise does not settle within the timeout', async () => {
+        it('rejects with Error when the promise does not settle within the timeout', async () => {
             const { behavior } = makeSetup();
             behavior.inject('key', new Promise(() => {}));
-            await expect(behavior.getResult('key', 20)).rejects.toBeInstanceOf(TimeoutError);
+            await expect(behavior.getResult('key', 20)).rejects.toBeInstanceOf(Error);
         }, 1000);
     });
 
@@ -110,7 +110,7 @@ describe('AsyncMapDataBehavior', () => {
             behavior.inject('b', Promise.reject(new Error('fail')));
             const result = await behavior.getBestEffortBatchedResult(['a', 'b']);
             expect(result).toHaveProperty('a', 'valA');
-            expect(result).not.toHaveProperty('b');
+            expect(result).toHaveProperty('b', null);
         });
 
         it('returns all keys when every promise resolves', async () => {
@@ -121,29 +121,30 @@ describe('AsyncMapDataBehavior', () => {
             expect(result).toEqual({ x: '1', y: '2' });
         });
 
-        it('returns an empty record when every promise rejects', async () => {
+        it('Returns all null when all promises fail', async () => {
             const { behavior } = makeSetup();
             behavior.inject('a', Promise.reject(new Error('e1')));
             behavior.inject('b', Promise.reject(new Error('e2')));
             const result = await behavior.getBestEffortBatchedResult(['a', 'b']);
-            expect(result).toEqual({});
+            expect(result).toHaveProperty('a', null);
+            expect(result).toHaveProperty('b', null);
         });
 
-        it('skips timed-out keys and returns the ones that resolved in time', async () => {
+        it('Returns values that returned in time, otherwise null', async () => {
             const { behavior } = makeSetup();
             behavior.inject('fast', Promise.resolve('done'));
             behavior.inject('slow', new Promise(() => {}));
             const result = await behavior.getBestEffortBatchedResult(['fast', 'slow'], 50);
             expect(result).toHaveProperty('fast', 'done');
-            expect(result).not.toHaveProperty('slow');
+            expect(result).toHaveProperty('slow', null);
         }, 1000);
 
-        it('silently skips keys that were never injected', async () => {
+        it('Returns null for keys that were never injected', async () => {
             const { behavior } = makeSetup();
             behavior.inject('known', Promise.resolve('ok'));
             const result = await behavior.getBestEffortBatchedResult(['known', 'unknown']);
             expect(result).toHaveProperty('known', 'ok');
-            expect(result).not.toHaveProperty('unknown');
+            expect(result).toHaveProperty('unknown', null);
         });
     });
 

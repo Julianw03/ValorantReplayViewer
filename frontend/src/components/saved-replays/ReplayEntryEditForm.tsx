@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { X } from 'lucide-react';
+import { type ReactNode, useState } from 'react';
+import { Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,6 +13,8 @@ interface ReplayEntryEditFormProps {
     initialTags: string[];
     initialNotes: string;
     presetTags?: string[];
+    isSaving?: boolean;
+    error?: ReactNode;
     onCancel: () => void;
     onSave: (patch: { name: string; tags: string[]; notes: string }) => void;
 }
@@ -22,6 +24,8 @@ export function ReplayEntryEditForm({
     initialTags,
     initialNotes,
     presetTags = PRESET_TAGS,
+    isSaving = false,
+    error,
     onCancel,
     onSave,
 }: ReplayEntryEditFormProps) {
@@ -121,11 +125,14 @@ export function ReplayEntryEditForm({
                 />
             </div>
 
+            {error && <div className="text-xs text-destructive">{error}</div>}
+
             <div className="flex justify-end gap-2">
                 <Button variant="ghost" size="sm" onClick={onCancel}>
                     Cancel
                 </Button>
-                <Button size="sm" disabled={nameInvalid} onClick={handleSave}>
+                <Button size="sm" disabled={nameInvalid || isSaving} onClick={handleSave}>
+                    {isSaving && <Loader2 className="animate-spin" />}
                     Save
                 </Button>
             </div>

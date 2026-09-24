@@ -1,8 +1,13 @@
 import { Controller, Delete, Get, HttpCode, HttpStatus, Logger, NotFoundException, Param, Post } from '@nestjs/common';
-import { ReplayIOManager } from '@/modules/Valorant/ValorantReplays/storage/ReplayIOManager';
-import { ApiOperation } from '@nestjs/swagger';
+import { ReplayManager } from '@/modules/Valorant/ValorantReplays/storage/ReplayManager';
+import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { ReplayInjectManagerV2 } from '@/modules/Valorant/ValorantReplays/injector/ReplayInjectManagerV2';
-import { type InjectStatus } from '@/modules/Valorant/ValorantReplays/injector/states/ReplayStates';
+import { createZodDto, ZodValidationPipe } from 'nestjs-zod';
+import { type InjectStatus, InjectStatusSchema } from '#/schemas/InjectStatus.schema';
+import { type MatchIdParam, MatchIdParamSchema } from '#/schemas/replays/ReplayStorageApi.schema';
+
+class InjectStatusModel extends createZodDto(InjectStatusSchema) {
+}
 
 @Controller({
     path: 'plugins/replay/injector',
@@ -12,7 +17,7 @@ export class ReplayInjectController {
     private readonly logger = new Logger(ReplayInjectController.name);
 
     constructor(
-        protected readonly replayIOManager: ReplayIOManager,
+        protected readonly replayManager: ReplayManager,
         protected readonly replayInjectManager: ReplayInjectManagerV2,
     ) {
     }
@@ -23,8 +28,8 @@ export class ReplayInjectController {
         description: 'Starts replay injection for a stored match.',
     })
     @HttpCode(HttpStatus.ACCEPTED)
-    async startInject(@Param('matchId') matchId: string): Promise<void> {
-        if (!this.replayIOManager.matchRegistered(matchId)) {
+    async startInject(@Param(new ZodValidationPipe(MatchIdParamSchema)) { matchId }: MatchIdParam): Promise<void> {
+        if (!this.replayManager.matchRegistered(matchId)) {
             throw new NotFoundException(
                 `Match ${matchId} not found in storage`,
             );
@@ -39,6 +44,7 @@ export class ReplayInjectController {
         summary: 'Get injector status',
         description: 'Returns current replay injection status.',
     })
+    @ApiOkResponse({ type: InjectStatusModel })
     getInjectStatus(): InjectStatus {
         const status = this.replayInjectManager.getView();
         if (!status) {

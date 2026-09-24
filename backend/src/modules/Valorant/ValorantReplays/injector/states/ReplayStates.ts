@@ -1,28 +1,16 @@
 import { LoggerService } from '@nestjs/common';
 import { MachineContext, MarkerEvent, MarkerState } from '@/core/logic/StateMachine';
-import { ReplayIOManager } from '@/modules/Valorant/ValorantReplays/storage/ReplayIOManager';
+import { ReplayManager } from '@/modules/Valorant/ValorantReplays/storage/ReplayManager';
+import { InjectState, InjectStatus } from '#/schemas/InjectStatus.schema';
+
+export { InjectState, type InjectStatus };
 
 export interface ReplayDeps {
-    readonly io: ReplayIOManager;
+    readonly io: ReplayManager;
     readonly logger: LoggerService;
 }
 
 export type ReplayContext = ReplayDeps & MachineContext<ReplayEvent>;
-
-export enum InjectState {
-    IDLE = 'IDLE',
-    DOWNLOADING_PLACEHOLDER = 'DOWNLOADING_PLACEHOLDER',
-    AWAITING_REPLAY_START = 'AWAITING_REPLAY_START',
-    INJECTED = 'INJECTED',
-    RESTORING_ORIGINAL_REPLAY = 'RESTORING_ORIGINAL_REPLAY',
-    FAILED = 'FAILED',
-}
-
-export interface InjectStatus {
-    state: InjectState;
-    targetMatchId: string | null;
-    placeholderMatchId: string | null;
-}
 
 export abstract class ReplayEvent implements MarkerEvent {
 }

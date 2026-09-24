@@ -18,7 +18,7 @@ export const RiotMatchMetadataSchema = z.object({
     matchMetadata: RiotMatchApiResponseDTOSchema,
 
     puuidResolver: z
-        .record(GUIDSchema, PlayerAliasSchema)
+        .record(GUIDSchema, PlayerAliasSchema.nullish())
 });
 
 export const ReplayFileMetadataSchema = z.object({

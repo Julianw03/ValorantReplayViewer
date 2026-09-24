@@ -70,7 +70,7 @@ export class ProductSessionRCUAdapter extends RCUDataAdapter<ProductSessionManag
             return;
         }
 
-        this.manager.updateKeyValueBatch(resp.data);
+        this.manager.updateValue(resp.data);
     }
 
     protected getPathParts(): AnyPathPattern[] {

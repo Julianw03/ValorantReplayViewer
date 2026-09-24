@@ -21,6 +21,9 @@
   "configurations": {
     "app": {
       "port": 3000,
+      "logging": {
+        "levels": ["log", "error", "warn"]
+      },
       "additional-cors-origins": []
     },
     "valorant-version-read": {

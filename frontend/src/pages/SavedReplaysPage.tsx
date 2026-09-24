@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { AlertCircle, Package, RefreshCw, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -7,17 +8,50 @@ import { cn } from '@/lib/utils';
 import { StorageCard } from '@/components/saved-replays/StorageCard';
 import { UploadReplayDialog } from '@/components/saved-replays/UploadReplayDialog';
 import { ReplayEntry, type ReplayRowButton, ReplayRowButtons } from '@/components/saved-replays/ReplayEntry.tsx';
+import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from '@/components/ui/pagination';
+
+function pageWindow(current: number, total: number): (number | 'ellipsis')[] {
+    if (total <= 7) {
+        return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    const wanted = [1, total, current - 1, current, current + 1].filter((p) => p >= 1 && p <= total);
+    const sorted = [...new Set(wanted)].sort((a, b) => a - b);
+    const out: (number | 'ellipsis')[] = [];
+    let prev = 0;
+    for (const p of sorted) {
+        if (p - prev > 1) out.push('ellipsis');
+        out.push(p);
+        prev = p;
+    }
+    return out;
+}
 
 export function SavedReplaysPage() {
     const queryClient = useQueryClient();
     const { data: storageStatus } = useStorageStatus();
-    const { data: storedMatches = [], isLoading, isFetching } = useStoredMatches();
+    const [page, setPage] = useState(1);
+    const { data, isLoading, isFetching, isPlaceholderData } = useStoredMatches(page);
+
+    if (data && data.totalPages > 0 && page > data.totalPages) {
+        setPage(data.totalPages);
+    }
 
     const isSetup = storageStatus?.isSetup ?? false;
+    const storedMatches = data?.data ?? [];
+    const total = data?.total ?? 0;
+    const totalPages = data?.totalPages ?? 1;
 
     function handleRefresh() {
         queryClient.invalidateQueries({ queryKey: queryKeys.storageStatus });
-        queryClient.invalidateQueries({ queryKey: queryKeys.storedMatches });
+        queryClient.invalidateQueries({ queryKey: ['storedMatches'] });
     }
 
     return (
@@ -36,8 +70,8 @@ export function SavedReplaysPage() {
                 <>
                     <div className="flex items-center justify-between">
                         <p className="text-sm text-muted-foreground">
-                            {storedMatches.length > 0
-                                ? `${storedMatches.length} ${storedMatches.length === 1 ? 'replay' : 'replays'}`
+                            {total > 0
+                                ? `${total} ${total === 1 ? 'replay' : 'replays'}`
                                 : 'No replays stored'}
                         </p>
                         <div className="flex items-center gap-2">
@@ -47,7 +81,12 @@ export function SavedReplaysPage() {
                                     Upload
                                 </Button>
                             </UploadReplayDialog>
-                            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isFetching}>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleRefresh}
+                                disabled={isFetching}
+                            >
                                 <RefreshCw className={cn(isFetching && 'animate-spin')} />
                                 Refresh
                             </Button>
@@ -60,7 +99,7 @@ export function SavedReplaysPage() {
                                 <Skeleton key={i} className="h-14 w-full rounded-lg" />
                             ))}
                         </div>
-                    ) : storedMatches.length === 0 ? (
+                    ) : total === 0 ? (
                         <div
                             className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-16 text-center">
                             <Package className="mb-3 size-8 text-muted-foreground" />
@@ -70,14 +109,17 @@ export function SavedReplaysPage() {
                             </p>
                         </div>
                     ) : (
-                        <div className="flex flex-col gap-2">
-                            {storedMatches.slice()
-                                .sort((a, b) => (b?.downloaderMetadata?.downloadedAt ?? 0) - (a?.downloaderMetadata?.downloadedAt ?? 0))
-                                .map((replay) => {
+                        <>
+                            <div className={cn(
+                                'flex flex-col gap-2 transition-opacity',
+                                isPlaceholderData && 'opacity-60',
+                            )}>
+                                {storedMatches.map((replay) => {
                                     const showDetails = replay.formatVersion !== 1;
 
                                     const shownButtons: ReplayRowButton[] = [
                                         ReplayRowButtons.INJECT,
+                                        ReplayRowButtons.EDIT,
                                         ReplayRowButtons.DELETE,
                                         ReplayRowButtons.DOWNLOAD,
                                     ];
@@ -89,9 +131,55 @@ export function SavedReplaysPage() {
                                     return (
                                         <ReplayEntry key={replay.uuid} replay={replay} shownButtons={shownButtons} />
                                     );
-                                })
-                            }
-                        </div>
+                                })}
+                            </div>
+
+                            {totalPages > 1 && (
+                                <Pagination>
+                                    <PaginationContent>
+                                        <PaginationItem>
+                                            <PaginationPrevious
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    if (page > 1) setPage(page - 1);
+                                                }}
+                                                aria-disabled={page <= 1}
+                                                className={cn(page <= 1 && 'pointer-events-none opacity-50')}
+                                            />
+                                        </PaginationItem>
+                                        {pageWindow(page, totalPages).map((item, i) =>
+                                            item === 'ellipsis' ? (
+                                                <PaginationItem key={`ellipsis-${i}`}>
+                                                    <PaginationEllipsis />
+                                                </PaginationItem>
+                                            ) : (
+                                                <PaginationItem key={item}>
+                                                    <PaginationLink
+                                                        isActive={item === page}
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            setPage(item);
+                                                        }}
+                                                    >
+                                                        {item}
+                                                    </PaginationLink>
+                                                </PaginationItem>
+                                            ),
+                                        )}
+                                        <PaginationItem>
+                                            <PaginationNext
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    if (page < totalPages) setPage(page + 1);
+                                                }}
+                                                aria-disabled={page >= totalPages}
+                                                className={cn(page >= totalPages && 'pointer-events-none opacity-50')}
+                                            />
+                                        </PaginationItem>
+                                    </PaginationContent>
+                                </Pagination>
+                            )}
+                        </>
                     )}
                 </>
             )}
